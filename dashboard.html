@@ -59,6 +59,34 @@
                     <button id="refresh-data" class="ml-4 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <i class="fas fa-sync-alt mr-1"></i> Refresh
                     </button>
+                    <button id="show-history" class="ml-2 px-3 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <i class="fas fa-history mr-1"></i> History
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historical Data Selector Panel -->
+        <div id="historical-data-panel" class="bg-gray-800 rounded-lg shadow-lg p-4 mb-6 hidden">
+            <div class="flex flex-col">
+                <h3 class="text-lg font-semibold mb-3">Fetch Historical Data</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <label for="history-start-date" class="block text-sm font-medium text-gray-400 mb-1">Start Date</label>
+                        <input type="datetime-local" id="history-start-date" class="bg-gray-700 text-white rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="history-end-date" class="block text-sm font-medium text-gray-400 mb-1">End Date</label>
+                        <input type="datetime-local" id="history-end-date" class="bg-gray-700 text-white rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button id="cancel-history" class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition focus:outline-none focus:ring-2 focus:ring-gray-500 mr-2">
+                        Cancel
+                    </button>
+                    <button id="fetch-history" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search mr-1"></i> Fetch Historical Data
+                    </button>
                 </div>
             </div>
         </div>
@@ -244,6 +272,19 @@
             <div class="flex items-center">
                 <i class="fas fa-exclamation-circle mr-2"></i>
                 <span id="error-text">Error message</span>
+            </div>
+            <button class="close-btn ml-4 text-white hover:text-gray-200" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Warning notification -->
+    <div id="warning-notification" class="fixed bottom-4 left-4 bg-yellow-500 text-white p-4 rounded-md shadow-lg hidden">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span id="warning-text">Warning message</span>
             </div>
             <button class="close-btn ml-4 text-white hover:text-gray-200" title="Close">
                 <i class="fas fa-times"></i>

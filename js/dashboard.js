@@ -57,6 +57,7 @@ const Dashboard = {
     this.loadSettings();
     this.setupEventListeners();
     this.initCharts();
+    this.setupHistoricalUI();
     
     // Fetch data on init
     this.fetchDashboardData();
@@ -100,6 +101,14 @@ const Dashboard = {
       // Error notification
       this.elements.errorNotification = document.getElementById('error-notification');
       this.elements.errorText = document.getElementById('error-text');
+      
+      // Historical data elements
+      this.elements.historicalPanel = document.getElementById('historical-data-panel');
+      this.elements.historyStartDate = document.getElementById('history-start-date');
+      this.elements.historyEndDate = document.getElementById('history-end-date');
+      this.elements.showHistoryBtn = document.getElementById('show-history');
+      this.elements.fetchHistoryBtn = document.getElementById('fetch-history');
+      this.elements.cancelHistoryBtn = document.getElementById('cancel-history');
     } catch (error) {
       console.error('Error loading DOM elements:', error);
     }
@@ -176,6 +185,22 @@ const Dashboard = {
     const refreshBtn = document.getElementById('refresh-data');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => this.fetchDashboardData());
+    }
+    
+    // Historical data UI buttons
+    const showHistoryBtn = document.getElementById('show-history');
+    if (showHistoryBtn) {
+      showHistoryBtn.addEventListener('click', () => this.toggleHistoricalPanel(true));
+    }
+    
+    const fetchHistoryBtn = document.getElementById('fetch-history');
+    if (fetchHistoryBtn) {
+      fetchHistoryBtn.addEventListener('click', () => this.fetchHistoricalData());
+    }
+    
+    const cancelHistoryBtn = document.getElementById('cancel-history');
+    if (cancelHistoryBtn) {
+      cancelHistoryBtn.addEventListener('click', () => this.toggleHistoricalPanel(false));
     }
     
     // Timeframe selection
@@ -855,6 +880,259 @@ const Dashboard = {
     }
     
     this.showError('ThingSpeak API not configured. Please go to Settings to configure your ThingSpeak channel.');
+  },
+  
+  /**
+   * Setup the historical data UI
+   */
+  setupHistoricalUI: function() {
+    // Initialize date inputs with default values
+    if (this.elements.historyStartDate) {
+      // Default to 7 days ago
+      const defaultStart = new Date();
+      defaultStart.setDate(defaultStart.getDate() - 7);
+      this.elements.historyStartDate.value = this.formatDateForInput(defaultStart);
+    }
+    
+    if (this.elements.historyEndDate) {
+      // Default to now
+      const defaultEnd = new Date();
+      this.elements.historyEndDate.value = this.formatDateForInput(defaultEnd);
+    }
+  },
+  
+  /**
+   * Format a date for datetime-local input
+   * @param {Date} date - Date to format
+   * @returns {string} - Formatted date string
+   */
+  formatDateForInput: function(date) {
+    const pad = (num) => num.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  },
+  
+  /**
+   * Toggle the historical data panel
+   * @param {boolean} show - Whether to show or hide the panel
+   */
+  toggleHistoricalPanel: function(show) {
+    if (this.elements.historicalPanel) {
+      if (show) {
+        this.elements.historicalPanel.classList.remove('hidden');
+      } else {
+        this.elements.historicalPanel.classList.add('hidden');
+      }
+    }
+  },
+  
+  /**
+   * Fetch historical data based on date range
+   */
+  fetchHistoricalData: async function() {
+    // Check if we have necessary settings
+    if (!this.state.thingSpeakSettings) {
+      console.error('ThingSpeak settings not found');
+      this.showConfigurationRequired();
+      return;
+    }
+    
+    // Get dates from inputs
+    let startDate = this.elements.historyStartDate ? this.elements.historyStartDate.value : null;
+    let endDate = this.elements.historyEndDate ? this.elements.historyEndDate.value : null;
+    
+    if (!startDate) {
+      this.showError('Please select a start date for historical data');
+      return;
+    }
+    
+    // Extract settings
+    const channelId = this.state.thingSpeakSettings.channelId || 
+                      this.state.thingSpeakSettings.channelID || 
+                      localStorage.getItem('thingspeak_channelID');
+                      
+    const apiKey = this.state.thingSpeakSettings.apiKey || 
+                  this.state.thingSpeakSettings.readAPIKey || 
+                  localStorage.getItem('thingspeak_readAPIKey');
+    
+    if (!channelId || !apiKey || channelId === "YOUR_CHANNEL_ID" || apiKey === "YOUR_API_KEY") {
+      console.error('Invalid ThingSpeak settings:', { channelId, apiKey });
+      this.showError('ThingSpeak Channel ID and API Key are required. Please configure in Settings.');
+      return;
+    }
+    
+    this.showLoading('Fetching historical data from ThingSpeak...');
+    this.state.isLoading = true;
+    
+    try {
+      console.log('Fetching historical ThingSpeak data:', { channelId, startDate, endDate });
+      
+      // Close the historical panel
+      this.toggleHistoricalPanel(false);
+      
+      // Use the ThingSpeak connector if available
+      if (window.thingSpeakConnector) {
+        console.log('Using ThingSpeakConnector for historical data fetch');
+        const data = await window.thingSpeakConnector.fetchHistoricalData({
+          channelId,
+          apiKey,
+          startDate,
+          endDate
+        });
+        
+        this.processThingSpeakData(data, true);
+      } else {
+        // Fallback to direct fetch
+        console.log('Using fallback method for historical data');
+        await this.fallbackFetchHistoricalData(channelId, apiKey, startDate, endDate);
+      }
+      
+      // Update last updated time
+      this.state.lastUpdated = new Date();
+      if (this.elements.lastUpdated) {
+        this.elements.lastUpdated.textContent = this.formatDateTime(this.state.lastUpdated) + ' (Historical)';
+      }
+      
+      // Update connection status
+      if (this.elements.connectionStatus) {
+        this.elements.connectionStatus.innerHTML = '<i class="fas fa-history text-purple-500 mr-2"></i> Historical Data';
+      }
+      
+      this.hideLoading();
+      this.state.isLoading = false;
+    } catch (error) {
+      console.error('Error fetching historical data:', error);
+      this.hideLoading();
+      this.state.isLoading = false;
+      this.showError('Error fetching historical data: ' + error.message);
+      
+      // Update connection status to show error
+      if (this.elements.connectionStatus) {
+        this.elements.connectionStatus.innerHTML = '<i class="fas fa-exclamation-circle text-red-500 mr-2"></i> Historical Data Fetch Failed';
+      }
+    }
+  },
+  
+  /**
+   * Fallback method to fetch historical ThingSpeak data directly
+   */
+  fallbackFetchHistoricalData: async function(channelId, apiKey, startDate, endDate) {
+    console.log('Using fallback method to fetch historical ThingSpeak data');
+    
+    // Construct the URL with start and end parameters
+    const url = new URL(`https://api.thingspeak.com/channels/${encodeURIComponent(channelId)}/feeds.json`);
+    url.searchParams.append('api_key', apiKey);
+    
+    if (startDate) {
+      url.searchParams.append('start', startDate.replace('T', ' '));
+    }
+    
+    if (endDate) {
+      url.searchParams.append('end', endDate.replace('T', ' '));
+    }
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      cache: 'no-cache',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Channel not found (ID: ${channelId})`);
+      } else if (response.status === 401) {
+        throw new Error('Invalid API key or insufficient permissions');
+      } else {
+        throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    const data = await response.json();
+    
+    if (!data || !data.channel) {
+      throw new Error('Invalid response from ThingSpeak API');
+    }
+    
+    // Add metadata to indicate this is historical data
+    data.meta = data.meta || {};
+    data.meta.historical = true;
+    
+    this.processThingSpeakData(data, true);
+    return data;
+  },
+  
+  /**
+   * Process ThingSpeak data
+   * @param {Object} data - ThingSpeak API response
+   * @param {boolean} isHistorical - Whether this is historical data
+   */
+  processThingSpeakData: function(data, isHistorical = false) {
+    if (!data || !data.channel || !data.feeds) {
+      this.showError('Invalid data format from ThingSpeak');
+      return;
+    }
+    
+    // Update channel info
+    if (this.elements.channelName) {
+      this.elements.channelName.textContent = data.channel.name + (isHistorical ? ' (Historical)' : '');
+    }
+    
+    if (this.elements.connectionStatus) {
+      this.elements.connectionStatus.innerHTML = '<span class="text-green-500"><i class="fas fa-check-circle mr-1"></i>Connected</span>';
+    }
+    
+    // Process feeds
+    const feeds = data.feeds;
+    
+    // Prepare data arrays for charts
+    const energyData = [];
+    const carbonData = [];
+    const temperatureData = [];
+    
+    feeds.forEach(feed => {
+      const timestamp = new Date(feed.created_at);
+      
+      // Example mapping - adjust based on your actual field mapping
+      const energyValue = parseFloat(feed.field1) || 0;
+      const temperatureValue = parseFloat(feed.field2) || 0;
+      
+      // Calculate carbon emissions based on energy
+      const carbonValue = energyValue * this.config.carbonFactor;
+      
+      // Add to data arrays
+      energyData.push({
+        x: timestamp,
+        y: energyValue
+      });
+      
+      carbonData.push({
+        x: timestamp,
+        y: carbonValue
+      });
+      
+      temperatureData.push({
+        x: timestamp,
+        y: temperatureValue
+      });
+    });
+    
+    // Store the processed data
+    this.state.data.energy = energyData;
+    this.state.data.carbon = carbonData;
+    this.state.data.temperature = temperatureData;
+    
+    // Update charts
+    this.updateCharts();
+    
+    // Update current metrics
+    this.updateCurrentMetrics();
+    
+    // Calculate and update ESG scores
+    this.updateESGScores();
+    
+    // Cache the data
+    this.saveDataToCache(data);
   }
 };
 

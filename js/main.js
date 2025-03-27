@@ -767,11 +767,10 @@ async function fetchData() {
 
     if (!data || !data.feeds || data.feeds.length === 0) {
       console.warn("[fetchData] No data received from ThingSpeak or empty feeds array");
-      showError("No data received from ThingSpeak. The channel might be empty or the fields might not match what we expect.");
-      showDebugInfo("Empty ThingSpeak Response", "The channel exists and API key is valid, but no data was returned.");
+      showWarning("No current data available in the ThingSpeak channel. Trying to fetch historical data...");
       
-      // Fall back to demo data
-      return loadDemoData();
+      // Try fetching historical data instead
+      return fetchHistoricalData();
     }
     
     // Success! Process and store the data
@@ -886,8 +885,122 @@ async function fetchData() {
       showDebugInfo("ThingSpeak API Error", error.message);
     }
     
-    // Load demo data after error
-    return loadDemoData();
+    // Try to fetch historical data as a fallback
+    showLoading('Attempting to fetch historical data instead...');
+    try {
+      const historicalData = await fetchHistoricalData();
+      if (historicalData) {
+        showSuccessMessage("Successfully loaded historical data");
+        return historicalData;
+      }
+    } catch (histError) {
+      console.error("[fetchData] Historical data fetch also failed:", histError);
+      // Now load demo data after all attempts have failed
+      return loadDemoData();
+    }
+  } finally {
+    hideLoading();
+  }
+}
+
+/**
+ * Fetch historical data from ThingSpeak
+ * This function will try to fetch data from the last 30 days if no current data is available
+ */
+async function fetchHistoricalData() {
+  console.log("[fetchHistoricalData] Attempting to fetch historical data");
+  
+  try {
+    showLoading('Fetching historical data from ThingSpeak...');
+    
+    // Default to last 30 days
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    
+    // Format dates for ThingSpeak API (YYYY-MM-DD HH:MM:SS format)
+    const formatDate = (date) => {
+      return date.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+    };
+    
+    const formattedStartDate = formatDate(startDate);
+    const formattedEndDate = formatDate(endDate);
+    
+    // Construct URL with date parameters
+    const params = new URLSearchParams({
+      api_key: CONFIG.thingspeak.readAPIKey,
+      start: formattedStartDate,
+      end: formattedEndDate
+    }).toString();
+    
+    const url = `https://api.thingspeak.com/channels/${encodeURIComponent(CONFIG.thingspeak.channelID)}/feeds.json?${params}`;
+    console.log(`[fetchHistoricalData] Making request to: ${url.replace(CONFIG.thingspeak.readAPIKey, "REDACTED")}`);
+    
+    // Make request
+    const response = await fetch(url, {
+      method: 'GET',
+      cache: 'no-cache',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Historical data request failed: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || !data.feeds || data.feeds.length === 0) {
+      console.warn("[fetchHistoricalData] No historical data found");
+      throw new Error("No historical data available");
+    }
+    
+    console.log(`[fetchHistoricalData] Retrieved ${data.feeds.length} historical records`);
+    
+    // Add metadata to indicate this is historical data
+    data.isHistorical = true;
+    
+    // Process historical data the same way as regular data
+    APP_STATE.historicalData = data.feeds.map(feed => {
+      const energyField = CONFIG.thingspeak.fieldMap.energyUsage;
+      let energyValue = parseFloat(feed[energyField]);
+      
+      if (isNaN(energyValue)) {
+        console.warn(`[fetchHistoricalData] Invalid energy value in field ${energyField}:`, feed[energyField]);
+        energyValue = 0; // Use 0 as fallback for invalid values
+      }
+      
+      return {
+        ...feed,
+        energy: energyValue,
+        carbon: energyValue * CONFIG.carbonFactor,
+        created_at: feed.created_at
+      };
+    }).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    
+    // Set current data to the most recent entry
+    APP_STATE.currentData = APP_STATE.historicalData[APP_STATE.historicalData.length - 1];
+    
+    // Calculate trend comparison data
+    calculatePreviousPeriodData();
+    
+    // Update UI
+    if (DOM.energyUsage) {
+      updateUI();
+    }
+    
+    // Update charts
+    if (typeof updateCharts === 'function' && document.getElementById('energy-chart')) {
+      updateCharts();
+    }
+    
+    showSuccessMessage("Historical data loaded successfully");
+    return APP_STATE.historicalData;
+    
+  } catch (error) {
+    console.error("[fetchHistoricalData] Failed to fetch historical data:", error);
+    throw error; // Re-throw to be handled by the caller
   } finally {
     hideLoading();
   }
@@ -2146,3 +2259,62 @@ async function fetchThingSpeakData(options = {}) {
         throw error;
   }
 } 
+
+/**
+ * Show a warning notification to the user
+ * @param {string} message - Warning message to display
+ * @param {number} [duration=5000] - How long to display the message (in ms)
+ */
+function showWarning(message, duration = 5000) {
+  console.warn("[Warning]", message);
+  
+  // First try to use the notification element if it exists
+  const warningNotification = document.getElementById('warning-notification');
+  const warningText = document.getElementById('warning-text');
+  
+  if (warningNotification && warningText) {
+    warningText.textContent = message;
+    warningNotification.classList.remove('hidden');
+    
+    // Auto-hide after duration
+    setTimeout(() => {
+      warningNotification.classList.add('hidden');
+    }, duration);
+    return;
+  }
+  
+  // Fallback: Create a temporary notification
+  const notificationDiv = document.createElement('div');
+  notificationDiv.className = 'fixed bottom-4 left-4 bg-yellow-500 text-white p-4 rounded-md shadow-lg z-50';
+  notificationDiv.style.zIndex = '9999';
+  
+  notificationDiv.innerHTML = `
+    <div class="flex items-center justify-between">
+      <div class="flex items-center">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        <span>${message}</span>
+      </div>
+      <button class="ml-4 text-white hover:text-gray-200" title="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `;
+  
+  // Add to document
+  document.body.appendChild(notificationDiv);
+  
+  // Close button functionality
+  const closeButton = notificationDiv.querySelector('button');
+  if (closeButton) {
+    closeButton.addEventListener('click', () => {
+      document.body.removeChild(notificationDiv);
+    });
+  }
+  
+  // Auto-hide after duration
+  setTimeout(() => {
+    if (document.body.contains(notificationDiv)) {
+      document.body.removeChild(notificationDiv);
+    }
+  }, duration);
+}

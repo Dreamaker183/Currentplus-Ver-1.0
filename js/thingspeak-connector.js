@@ -454,6 +454,202 @@ class ThingSpeakConnector {
       config: { ...this.config, proxyUrl: this.config.proxyUrl ? '(configured)' : null }
     };
   }
+  
+  /**
+   * Fetch historical data from a ThingSpeak channel by date range
+   * @param {Object} options - Fetch options
+   * @param {string} options.channelId - Channel ID
+   * @param {string} options.apiKey - API Key
+   * @param {Date|string} options.startDate - Start date for historical data
+   * @param {Date|string} options.endDate - End date for historical data (defaults to now)
+   * @param {boolean} options.bypassCache - Skip cache lookup
+   * @returns {Promise<Object>} - Channel data
+   */
+  async fetchHistoricalData(options) {
+    const { 
+      channelId, 
+      apiKey, 
+      startDate,
+      endDate = new Date(),
+      bypassCache = false 
+    } = options;
+    
+    // Validate required parameters
+    if (!channelId) {
+      throw new Error('Channel ID is required');
+    }
+    
+    if (!apiKey) {
+      throw new Error('API Key is required');
+    }
+    
+    if (!startDate) {
+      throw new Error('Start date is required for historical data');
+    }
+    
+    // Format dates for ThingSpeak API (YYYY-MM-DD HH:MM:SS format)
+    const formatDate = (date) => {
+      if (typeof date === 'string') {
+        return date;
+      }
+      
+      const d = new Date(date);
+      return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+    };
+    
+    const formattedStartDate = formatDate(startDate);
+    const formattedEndDate = formatDate(endDate);
+    
+    // Generate cache key
+    const cacheKey = `historical_${channelId}_${formattedStartDate}_${formattedEndDate}`;
+    
+    // Check cache if enabled and not bypassed
+    if (this.config.cacheResults && !bypassCache) {
+      const cachedData = this.getFromCache(cacheKey);
+      if (cachedData) {
+        this.log(`Using cached historical data for channel ${channelId}`);
+        return cachedData;
+      }
+    }
+    
+    this.status.requestCount++;
+    
+    // Construct API URL with start and end dates
+    const url = this.buildApiUrl('/channels/' + channelId + '/feeds.json', {
+      api_key: apiKey,
+      start: formattedStartDate,
+      end: formattedEndDate
+    });
+    
+    // Try to fetch with retries
+    let lastError = null;
+    for (let attempt = 1; attempt <= this.config.retryCount; attempt++) {
+      try {
+        this.log(`Fetching historical data for channel ${channelId} (Attempt ${attempt}/${this.config.retryCount})`);
+        
+        // Try direct API call
+        const data = await this.fetchWithTimeout(url);
+        
+        // Validate response
+        if (!data || !data.channel) {
+          throw new Error('Invalid response format from ThingSpeak API');
+        }
+        
+        // Update status
+        this.status.lastSuccess = new Date();
+        this.status.responseCount++;
+        this.status.errorCount = 0;
+        
+        // Cache the results
+        if (this.config.cacheResults) {
+          this.saveToCache(cacheKey, data);
+        }
+        
+        return data;
+      } catch (error) {
+        lastError = error;
+        this.log(`Attempt ${attempt} failed: ${error.message}`, 'warn');
+        
+        // If this is not the last attempt, wait before retrying
+        if (attempt < this.config.retryCount) {
+          await this.delay(this.config.retryCount * attempt); // Exponential backoff
+        }
+      }
+    }
+    
+    // If we get here, all attempts failed
+    this.status.lastError = new Date();
+    this.status.errorCount++;
+    
+    // If we have a proxy, try it as a last resort
+    if (this.config.proxyUrl && lastError) {
+      try {
+        this.log('Trying proxy as a fallback for historical data', 'warn');
+        return await this.fetchHistoricalViaProxy(options);
+      } catch (proxyError) {
+        this.log(`Proxy fallback also failed: ${proxyError.message}`, 'error');
+        // Fall through to the error handler
+      }
+    }
+    
+    // Check if we have cached data, even if it's expired, as a last resort
+    const expiredCache = this.getFromCache(cacheKey, true);
+    if (expiredCache) {
+      this.log('Using expired cache historical data as a fallback', 'warn');
+      return {
+        ...expiredCache,
+        meta: {
+          ...(expiredCache.meta || {}),
+          cached: true,
+          expired: true,
+          lastUpdated: this.cache[cacheKey]?.timestamp
+        }
+      };
+    }
+    
+    // If we get here, all retries and fallbacks failed
+    throw lastError || new Error('Failed to fetch historical ThingSpeak data after multiple attempts');
+  }
+  
+  /**
+   * Fetch historical data via a proxy server
+   * @param {Object} options - Fetch options
+   * @private
+   */
+  async fetchHistoricalViaProxy(options) {
+    const { channelId, apiKey, startDate, endDate } = options;
+    
+    if (!this.config.proxyUrl) {
+      throw new Error('Proxy URL not configured');
+    }
+    
+    // Format dates for ThingSpeak API
+    const formatDate = (date) => {
+      if (typeof date === 'string') {
+        return date;
+      }
+      
+      const d = new Date(date);
+      return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+    };
+    
+    const formattedStartDate = formatDate(startDate);
+    const formattedEndDate = formatDate(endDate || new Date());
+    
+    // Construct proxy request
+    const proxyParams = {
+      url: `${this.config.baseUrl}/channels/${channelId}/feeds.json`,
+      params: {
+        api_key: apiKey,
+        start: formattedStartDate,
+        end: formattedEndDate
+      }
+    };
+    
+    const response = await fetch(this.config.proxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(proxyParams)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Proxy error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Add metadata to indicate this came via proxy
+    return {
+      ...data,
+      meta: {
+        ...(data.meta || {}),
+        viaProxy: true,
+        historical: true
+      }
+    };
+  }
 }
 
 // Create a global instance
