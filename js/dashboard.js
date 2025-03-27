@@ -38,9 +38,7 @@ const Dashboard = {
     refreshTimer: null,
     data: {
       energy: [],
-      carbon: [],
-      temperature: [],
-      statusData: {}
+      carbon: []
     },
     isLoading: false,
     timeframe: 'week', // default timeframe
@@ -336,8 +334,9 @@ const Dashboard = {
   /**
    * Process ThingSpeak data
    * @param {Object} data - ThingSpeak API response
+   * @param {boolean} isHistorical - Whether this is historical data
    */
-  processThingSpeakData: function(data) {
+  processThingSpeakData: function(data, isHistorical = false) {
     if (!data || !data.channel || !data.feeds) {
       this.showError('Invalid data format from ThingSpeak');
       return;
@@ -345,7 +344,7 @@ const Dashboard = {
     
     // Update channel info
     if (this.elements.channelName) {
-      this.elements.channelName.textContent = data.channel.name || 'ThingSpeak Channel';
+      this.elements.channelName.textContent = data.channel.name + (isHistorical ? ' (Historical)' : '');
     }
     
     if (this.elements.connectionStatus) {
@@ -358,14 +357,12 @@ const Dashboard = {
     // Prepare data arrays for charts
     const energyData = [];
     const carbonData = [];
-    const temperatureData = [];
     
     feeds.forEach(feed => {
       const timestamp = new Date(feed.created_at);
       
-      // Example mapping - adjust based on your actual field mapping
+      // Use field1 for energy usage
       const energyValue = parseFloat(feed.field1) || 0;
-      const temperatureValue = parseFloat(feed.field2) || 0;
       
       // Calculate carbon emissions based on energy
       const carbonValue = energyValue * this.config.carbonFactor;
@@ -380,17 +377,11 @@ const Dashboard = {
         x: timestamp,
         y: carbonValue
       });
-      
-      temperatureData.push({
-        x: timestamp,
-        y: temperatureValue
-      });
     });
     
     // Store the processed data
     this.state.data.energy = energyData;
     this.state.data.carbon = carbonData;
-    this.state.data.temperature = temperatureData;
     
     // Update charts
     this.updateCharts();
@@ -1060,79 +1051,6 @@ const Dashboard = {
     
     this.processThingSpeakData(data, true);
     return data;
-  },
-  
-  /**
-   * Process ThingSpeak data
-   * @param {Object} data - ThingSpeak API response
-   * @param {boolean} isHistorical - Whether this is historical data
-   */
-  processThingSpeakData: function(data, isHistorical = false) {
-    if (!data || !data.channel || !data.feeds) {
-      this.showError('Invalid data format from ThingSpeak');
-      return;
-    }
-    
-    // Update channel info
-    if (this.elements.channelName) {
-      this.elements.channelName.textContent = data.channel.name + (isHistorical ? ' (Historical)' : '');
-    }
-    
-    if (this.elements.connectionStatus) {
-      this.elements.connectionStatus.innerHTML = '<span class="text-green-500"><i class="fas fa-check-circle mr-1"></i>Connected</span>';
-    }
-    
-    // Process feeds
-    const feeds = data.feeds;
-    
-    // Prepare data arrays for charts
-    const energyData = [];
-    const carbonData = [];
-    const temperatureData = [];
-    
-    feeds.forEach(feed => {
-      const timestamp = new Date(feed.created_at);
-      
-      // Example mapping - adjust based on your actual field mapping
-      const energyValue = parseFloat(feed.field1) || 0;
-      const temperatureValue = parseFloat(feed.field2) || 0;
-      
-      // Calculate carbon emissions based on energy
-      const carbonValue = energyValue * this.config.carbonFactor;
-      
-      // Add to data arrays
-      energyData.push({
-        x: timestamp,
-        y: energyValue
-      });
-      
-      carbonData.push({
-        x: timestamp,
-        y: carbonValue
-      });
-      
-      temperatureData.push({
-        x: timestamp,
-        y: temperatureValue
-      });
-    });
-    
-    // Store the processed data
-    this.state.data.energy = energyData;
-    this.state.data.carbon = carbonData;
-    this.state.data.temperature = temperatureData;
-    
-    // Update charts
-    this.updateCharts();
-    
-    // Update current metrics
-    this.updateCurrentMetrics();
-    
-    // Calculate and update ESG scores
-    this.updateESGScores();
-    
-    // Cache the data
-    this.saveDataToCache(data);
   }
 };
 

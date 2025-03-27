@@ -15,9 +15,7 @@ const CONFIG = {
     readAPIKey: localStorage.getItem('thingspeak_readAPIKey') || "YOUR_API_KEY",
     results: 100,
     fieldMap: {
-      energyUsage: "field1",
-      voltage: "field2",
-      current: "field3"
+      energyUsage: "field1"
     },
     refreshInterval: 60000,
   },
@@ -1200,15 +1198,11 @@ function calculatePreviousPeriodData() {
   
   // Calculate averages for both periods
   const currentAvg = {
-    energyUsage: calculateAverage(currentPeriod, CONFIG.thingspeak.fieldMap.energyUsage),
-    voltage: calculateAverage(currentPeriod, CONFIG.thingspeak.fieldMap.voltage),
-    current: calculateAverage(currentPeriod, CONFIG.thingspeak.fieldMap.current)
+    energyUsage: calculateAverage(currentPeriod, CONFIG.thingspeak.fieldMap.energyUsage)
   };
   
   const previousAvg = {
-    energyUsage: calculateAverage(previousPeriod, CONFIG.thingspeak.fieldMap.energyUsage),
-    voltage: calculateAverage(previousPeriod, CONFIG.thingspeak.fieldMap.voltage),
-    current: calculateAverage(previousPeriod, CONFIG.thingspeak.fieldMap.current)
+    energyUsage: calculateAverage(previousPeriod, CONFIG.thingspeak.fieldMap.energyUsage)
   };
   
   APP_STATE.previousPeriodData = {
