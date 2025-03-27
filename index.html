@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Current+ | Enterprise ESG Analytics Platform</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Custom Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              100: '#E6F7FF',
+              200: '#BAE7FF',
+              300: '#91D5FF',
+              400: '#69C0FF',
+              500: '#40A9FF',
+              600: '#1890FF',
+              700: '#096DD9',
+              800: '#0050B3',
+              900: '#003A8C',
+            },
+            secondary: {
+              500: '#722ED1',
+            },
+            dark: {
+              800: '#1F2937',
+              900: '#111827',
+            },
+            success: {
+              500: '#52C41A',
+            },
+            warning: {
+              500: '#FAAD14',
+            },
+            danger: {
+              500: '#F5222D',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF for report generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- html2canvas for PDF screenshots -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js"></script>
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Preload fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Load dependencies coordinator before any other script -->
+  <script src="js/loader.js"></script>
+  
+  <!-- Our application scripts (will run after dependencies are loaded) -->
+  <script src="js/main.js" defer></script>
+  <script src="js/charts.js" defer></script>
+  <script src="js/ai-model.js" defer></script>
+  <script src="js/report-generator.js" defer></script>
+</head>
+<body class="bg-dark-900 text-white font-sans min-h-screen">
+  <!-- Skip to main content for accessibility -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:bg-primary-600 focus:text-white">Skip to main content</a>
+
+  <!-- Loading Indicator -->
+  <div id="loading-indicator" class="fixed inset-0 bg-dark-900 bg-opacity-80 flex items-center justify-center z-50">
+    <div class="bg-dark-800 rounded-lg p-6 max-w-md text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500 border-r-2 mx-auto mb-4"></div>
+      <p id="loading-text" class="text-lg">Loading data...</p>
+    </div>
+  </div>
+  
+  <!-- Success Notification -->
+  <div id="success-notification" class="fixed top-4 right-4 flex items-center bg-green-900 text-green-100 px-4 py-3 rounded-md shadow-lg z-50 hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+    </svg>
+    <span id="notification-text">Operation completed successfully!</span>
+  </div>
+  
+  <!-- Error Notification -->
+  <div id="error-notification" class="fixed top-4 right-4 flex items-center bg-red-900 text-red-100 px-4 py-3 rounded-md shadow-lg z-50 hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+    </svg>
+    <span id="error-text">An error occurred. Please try again.</span>
+  </div>
+
+  <!-- Report Generation Modal -->
+  <div id="report-modal" class="fixed inset-0 bg-dark-900 bg-opacity-80 flex items-center justify-center z-40 hidden">
+    <div class="bg-dark-800 rounded-lg shadow-xl p-6 max-w-md w-full">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-semibold">Generate ESG Report</h3>
+        <button id="close-modal" class="text-gray-400 hover:text-white" aria-label="Close modal" title="Close modal">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <p class="text-gray-300 mb-4">Customize your ESG report by selecting which components to include:</p>
+      
+      <div class="space-y-4 mb-6">
+        <div class="flex items-center">
+          <input type="checkbox" id="include-predictions" class="mr-3 h-5 w-5 text-primary-600 rounded" checked />
+          <label for="include-predictions" class="text-gray-300">Include AI Predictions</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="include-charts" class="mr-3 h-5 w-5 text-primary-600 rounded" checked />
+          <label for="include-charts" class="text-gray-300">Include Data Visualizations</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="include-recommendations" class="mr-3 h-5 w-5 text-primary-600 rounded" checked />
+          <label for="include-recommendations" class="text-gray-300">Include Sustainability Recommendations</label>
+        </div>
+      </div>
+      
+      <div class="flex justify-end space-x-4">
+        <button id="cancel-report" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-md">
+          Cancel
+        </button>
+        <button id="confirm-report" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md">
+          Generate Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application wrapper -->
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="hidden md:flex flex-col w-64 bg-dark-800 border-r border-gray-700">
+      <div class="p-6">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary-600 rounded-md p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h1 class="text-2xl font-bold text-white">Current<span class="text-primary-500">+</span></h1>
+        </div>
+        <p class="mt-2 text-xs text-gray-400">Enterprise ESG Analytics</p>
+      </div>
+      
+      <nav class="flex-1 px-4 py-4 space-y-1">
+        <a href="index.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out bg-gray-700">
+          <i class="fa-solid fa-gauge-high w-5 h-5 mr-3"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="reports.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-file-lines w-5 h-5 mr-3"></i>
+          <span>Reports</span>
+        </a>
+        <a href="ai-predictions.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-brain w-5 h-5 mr-3"></i>
+          <span>AI Predictions</span>
+        </a>
+        <a href="analytics.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-chart-simple w-5 h-5 mr-3"></i>
+          <span>Analytics</span>
+        </a>
+        <a href="settings.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gear w-5 h-5 mr-3"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+      
+      <div class="p-4 border-t border-gray-700">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-medium">
+            A
+          </div>
+          <div>
+            <h4 class="text-sm font-medium">Admin User</h4>
+            <p class="text-xs text-gray-400">Sustainability Manager</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile sidebar toggle -->
+    <div class="md:hidden fixed bottom-4 right-4 z-50">
+      <button id="dashboard-mobile-menu-toggle" class="p-3 rounded-full bg-primary-600 text-white shadow-lg" aria-label="Toggle menu" title="Toggle menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+
+    <!-- Main content -->
+    <main id="main-content" class="flex-1 overflow-y-auto bg-gradient-to-br from-dark-900 to-gray-800">
+      <!-- Top Navigation -->
+      <header class="bg-dark-800 border-b border-gray-700 px-4 md:px-6 py-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center md:hidden">
+            <div class="bg-primary-600 rounded-md p-2 mr-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h1 class="text-xl font-bold text-white">Current<span class="text-primary-500">+</span></h1>
+          </div>
+
+          <h1 class="text-lg md:text-xl font-semibold hidden md:block">ESG Analytics Dashboard</h1>
+          
+          <div class="flex items-center space-x-4">
+            <button class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors duration-200" title="Notifications">
+              <i class="fa-solid fa-bell"></i>
+            </button>
+            <div class="h-6 w-px bg-gray-700"></div>
+            <div class="md:hidden">
+              <button class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors duration-200" title="User profile">
+                <i class="fa-solid fa-user"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard Content -->
+      <div class="p-4 md:p-6 space-y-6">
+        <!-- Page Title and Actions -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 class="text-2xl md:text-3xl font-bold">AI-Generated ESG Report</h2>
+            <p class="text-gray-400 mt-1">Real-time energy analysis with AI-powered sustainability insights</p>
+          </div>
+          <div class="flex flex-wrap gap-4 mb-6">
+            <button id="refresh-data" class="inline-flex items-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-md shadow-sm text-sm font-medium">
+              <i class="fas fa-sync-alt mr-2 text-primary-500"></i>
+              Refresh Data
+            </button>
+            <button id="generate-report" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md shadow-sm text-sm font-medium">
+              <i class="fas fa-file-pdf mr-2"></i>
+              Generate Report
+            </button>
+            <button id="export-to-powerbi" class="inline-flex items-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-md shadow-sm text-sm font-medium">
+              <i class="fas fa-file-export mr-2"></i>
+              Export to PowerBI
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Energy Usage -->
+          <div class="bg-dark-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-gray-400 text-sm font-medium">Energy Consumption</p>
+                <h3 class="text-3xl font-bold mt-2 text-primary-400">
+                  <span id="energyUsage">--</span>
+                  <span class="text-lg ml-1">kWh</span>
+                </h3>
+              </div>
+              <div class="p-2 bg-primary-900/30 rounded-lg text-primary-400">
+                <i class="fa-solid fa-bolt"></i>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center">
+              <span id="energyTrend" class="text-success-500 flex items-center text-sm">
+                <i class="fa-solid fa-arrow-up mr-1"></i>
+                <span id="energyChangePercent">0%</span>
+              </span>
+              <span class="text-gray-500 text-sm ml-2">vs last period</span>
+            </div>
+          </div>
+
+          <!-- Carbon Emissions -->
+          <div class="bg-dark-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-gray-400 text-sm font-medium">Carbon Emissions</p>
+                <h3 class="text-3xl font-bold mt-2 text-green-400">
+                  <span id="carbonEmissions">--</span>
+                  <span class="text-lg ml-1">kg CO₂</span>
+                </h3>
+              </div>
+              <div class="p-2 bg-green-900/30 rounded-lg text-green-400">
+                <i class="fa-solid fa-leaf"></i>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center">
+              <span id="carbonTrend" class="text-success-500 flex items-center text-sm">
+                <i class="fa-solid fa-arrow-down mr-1"></i>
+                <span id="carbonChangePercent">0%</span>
+              </span>
+              <span class="text-gray-500 text-sm ml-2">vs last period</span>
+            </div>
+          </div>
+
+          <!-- AI Sustainability Score -->
+          <div class="bg-dark-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-gray-400 text-sm font-medium">AI Sustainability Score</p>
+                <h3 class="text-3xl font-bold mt-2 text-secondary-500">
+                  <span id="aiSustainabilityScore">--</span>
+                  <span class="text-lg ml-1">/ 100</span>
+                </h3>
+              </div>
+              <div class="p-2 bg-purple-900/30 rounded-lg text-secondary-500">
+                <i class="fa-solid fa-brain"></i>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center">
+              <span id="aiScoreTrend" class="text-success-500 flex items-center text-sm">
+                <i class="fa-solid fa-arrow-up mr-1"></i>
+                <span id="aiScoreChangePercent">0%</span>
+              </span>
+              <span class="text-gray-500 text-sm ml-2">vs last period</span>
+            </div>
+          </div>
+
+          <!-- ESG Rating -->
+          <div class="bg-dark-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-gray-400 text-sm font-medium">ESG Rating</p>
+                <h3 class="text-3xl font-bold mt-2 text-blue-400">
+                  <span id="esgRating">--</span>
+                </h3>
+              </div>
+              <div class="p-2 bg-blue-900/30 rounded-lg text-blue-400">
+                <i class="fa-solid fa-star"></i>
+              </div>
+            </div>
+            <div class="mt-4 flex items-center">
+              <span id="ratingChange" class="text-gray-400 flex items-center text-sm">
+                <span>Updated Today</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Energy Consumption Trend -->
+          <div class="bg-dark-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-semibold">Energy Consumption Trend</h3>
+              <div class="flex space-x-2">
+                <button class="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 transition-colors">Day</button>
+                <button class="px-2 py-1 text-xs rounded bg-primary-600 text-white transition-colors">Week</button>
+                <button class="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 transition-colors">Month</button>
+              </div>
+            </div>
+            <div class="h-60">
+              <canvas id="energyChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Carbon Emissions Analysis -->
+          <div class="bg-dark-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-semibold">Carbon Emissions Analysis</h3>
+              <div class="flex space-x-2">
+                <button class="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 transition-colors">Day</button>
+                <button class="px-2 py-1 text-xs rounded bg-primary-600 text-white transition-colors">Week</button>
+                <button class="px-2 py-1 text-xs rounded bg-gray-700 hover:bg-gray-600 transition-colors">Month</button>
+              </div>
+            </div>
+            <div class="h-60">
+              <canvas id="carbonChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Predictions Section -->
+        <div class="bg-dark-800 rounded-xl p-5 border border-gray-700 shadow-lg">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold">AI-Powered Sustainability Insights</h3>
+            <div>
+              <button id="updatePredictions" class="px-3 py-1 text-xs rounded bg-secondary-500 hover:bg-opacity-90 transition-colors">
+                <i class="fa-solid fa-rotate mr-1"></i>
+                Update
+              </button>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <!-- Prediction 1: Carbon Forecast -->
+            <div class="bg-dark-900 p-4 rounded-lg border border-gray-700">
+              <div class="flex items-center mb-3">
+                <div class="w-8 h-8 rounded-full bg-green-900/50 flex items-center justify-center text-green-400 mr-3">
+                  <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <h4 class="font-medium">Carbon Forecast</h4>
+              </div>
+              <p class="text-gray-400 text-sm mb-3">Predicted emissions for next month:</p>
+              <div class="flex justify-between items-center">
+                <span class="text-lg font-bold text-green-400" id="carbonForecast">--</span>
+                <span id="carbonForecastTrend" class="text-success-500 text-sm flex items-center">
+                  <i class="fa-solid fa-arrow-down mr-1"></i> 
+                  <span id="carbonForecastChange">0%</span>
+                </span>
+              </div>
+            </div>
+            
+            <!-- Prediction 2: Energy Efficiency -->
+            <div class="bg-dark-900 p-4 rounded-lg border border-gray-700">
+              <div class="flex items-center mb-3">
+                <div class="w-8 h-8 rounded-full bg-primary-900/50 flex items-center justify-center text-primary-400 mr-3">
+                  <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h4 class="font-medium">Energy Efficiency</h4>
+              </div>
+              <p class="text-gray-400 text-sm mb-3">AI-calculated efficiency score:</p>
+              <div class="flex justify-between items-center">
+                <span class="text-lg font-bold text-primary-400" id="efficiencyScore">--</span>
+                <span id="efficiencyTrend" class="text-success-500 text-sm flex items-center">
+                  <i class="fa-solid fa-arrow-up mr-1"></i> 
+                  <span id="efficiencyChange">0%</span>
+                </span>
+              </div>
+            </div>
+            
+            <!-- Prediction 3: Sustainability Recommendations -->
+            <div class="bg-dark-900 p-4 rounded-lg border border-gray-700">
+              <div class="flex items-center mb-3">
+                <div class="w-8 h-8 rounded-full bg-secondary-900/50 flex items-center justify-center text-secondary-500 mr-3">
+                  <i class="fa-solid fa-lightbulb"></i>
+                </div>
+                <h4 class="font-medium">AI Recommendations</h4>
+              </div>
+              <p class="text-gray-400 text-sm mb-3">Top sustainability insight:</p>
+              <p class="text-white text-sm" id="aiRecommendation">Loading AI recommendations...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESG Report Summary -->
+        <div class="bg-dark-800 rounded-xl p-5 border border-gray-700 shadow-lg" id="reportSummary">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-semibold">ESG Report Summary</h3>
+            <div>
+              <button id="downloadReportPDF" class="px-3 py-1 text-xs rounded bg-primary-600 hover:bg-opacity-90 transition-colors">
+                <i class="fa-solid fa-download mr-1"></i>
+                Download PDF
+              </button>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+            <!-- Environmental -->
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-green-900/50 flex items-center justify-center text-green-400 mr-3">
+                  <i class="fa-solid fa-leaf"></i>
+                </div>
+                <h4 class="font-medium">Environmental</h4>
+              </div>
+              <div class="pl-11">
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Carbon Emissions</span>
+                    <span class="text-xs text-gray-400" id="envScore1">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-65"></div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Energy Efficiency</span>
+                    <span class="text-xs text-gray-400" id="envScore2">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-80"></div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Renewable Usage</span>
+                    <span class="text-xs text-gray-400" id="envScore3">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-45"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Social -->
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 mr-3">
+                  <i class="fa-solid fa-users"></i>
+                </div>
+                <h4 class="font-medium">Social</h4>
+              </div>
+              <div class="pl-11">
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Community Impact</span>
+                    <span class="text-xs text-gray-400" id="socialScore1">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-green-500 h-1.5 rounded-full progress-width-70"></div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Stakeholder Engagement</span>
+                    <span class="text-xs text-gray-400" id="socialScore2">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-green-500 h-1.5 rounded-full progress-width-60"></div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Labor Practices</span>
+                    <span class="text-xs text-gray-400" id="socialScore3">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-green-500 h-1.5 rounded-full progress-width-30"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Governance -->
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-purple-900/50 flex items-center justify-center text-purple-400 mr-3">
+                  <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+                <h4 class="font-medium">Governance</h4>
+              </div>
+              <div class="pl-11">
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Board Diversity</span>
+                    <span class="text-xs text-gray-400" id="govScore1">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-65"></div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Ethics & Compliance</span>
+                    <span class="text-xs text-gray-400" id="govScore2">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-80"></div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <div class="flex justify-between mb-1">
+                    <span class="text-xs text-gray-400">Transparency</span>
+                    <span class="text-xs text-gray-400" id="govScore3">--</span>
+                  </div>
+                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
+                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-45"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="bg-dark-800 border-t border-gray-700 px-6 py-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="text-gray-400 text-sm">
+            © 2023 Current+ Enterprise ESG Analytics Platform
+          </div>
+          <div class="mt-2 md:mt-0 text-gray-500 text-xs">
+            Data powered by ThingSpeak | AI Predictions by TensorFlow.js
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Mobile menu (off-canvas) -->
+  <div id="mobile-menu" class="fixed inset-0 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50" id="mobile-menu-overlay"></div>
+    <div class="absolute inset-y-0 left-0 w-64 bg-dark-800 shadow-xl transform transition-transform duration-300 ease-in-out">
+      <!-- Mobile menu content -->
+      <div class="p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="bg-primary-600 rounded-md p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white">Current<span class="text-primary-500">+</span></h1>
+          </div>
+          <button id="close-mobile-menu" class="text-gray-400 hover:text-white" title="Close menu">
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+      </div>
+      <nav class="px-4 py-4 space-y-1">
+        <a href="index.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out bg-gray-700">
+          <i class="fa-solid fa-gauge-high w-5 h-5 mr-3"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="reports.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-file-lines w-5 h-5 mr-3"></i>
+          <span>Reports</span>
+        </a>
+        <a href="ai-predictions.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-brain w-5 h-5 mr-3"></i>
+          <span>AI Predictions</span>
+        </a>
+        <a href="analytics.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-chart-simple w-5 h-5 mr-3"></i>
+          <span>Analytics</span>
+        </a>
+        <a href="settings.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gear w-5 h-5 mr-3"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+</body>
+</html> 

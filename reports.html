@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports | Current+ Enterprise ESG Analytics Platform</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Custom Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              100: '#E6F7FF',
+              200: '#BAE7FF',
+              300: '#91D5FF',
+              400: '#69C0FF',
+              500: '#40A9FF',
+              600: '#1890FF',
+              700: '#096DD9',
+              800: '#0050B3',
+              900: '#003A8C',
+            },
+            secondary: {
+              500: '#722ED1',
+            },
+            dark: {
+              800: '#1F2937',
+              900: '#111827',
+            },
+            success: {
+              500: '#52C41A',
+              600: '#389E0D',
+            },
+            warning: {
+              500: '#FAAD14',
+            },
+            danger: {
+              500: '#F5222D',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <!-- Preload fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- jsPDF for report generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- html2canvas for PDF screenshots -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Load dependencies coordinator before any other script -->
+  <script src="js/loader.js"></script>
+  
+  <!-- Our application scripts (will run after dependencies are loaded) -->
+  <script src="js/main.js" defer></script>
+  <script src="js/charts.js" defer></script>
+  <script src="js/ai-model.js" defer></script>
+  <script src="js/report-generator.js" defer></script>
+</head>
+<body class="bg-dark-900 text-white font-sans min-h-screen">
+  <!-- Skip to main content for accessibility -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:bg-primary-600 focus:text-white">Skip to main content</a>
+
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 border-r border-gray-700 bg-dark-800 hidden md:block">
+      <div class="p-6">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary-600 rounded-md p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h1 class="text-2xl font-bold">Current<span class="text-primary-500">+</span></h1>
+        </div>
+      </div>
+      <nav class="px-4 py-4 space-y-1">
+        <a href="index.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gauge-high w-5 h-5 mr-3"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="reports.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-file-lines w-5 h-5 mr-3"></i>
+          <span>Reports</span>
+        </a>
+        <a href="ai-predictions.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-brain w-5 h-5 mr-3"></i>
+          <span>AI Predictions</span>
+        </a>
+        <a href="analytics.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-chart-simple w-5 h-5 mr-3"></i>
+          <span>Analytics</span>
+        </a>
+        <a href="settings.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gear w-5 h-5 mr-3"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-y-auto">
+      <!-- Top navigation -->
+      <header class="bg-dark-800 shadow-md border-b border-gray-700">
+        <div class="flex items-center justify-between px-6 py-4">
+          <div class="flex items-center">
+            <button id="mobile-menu-toggle" class="text-gray-400 hover:text-white md:hidden" aria-label="Toggle mobile menu">
+              <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <h2 class="text-xl font-semibold ml-4 md:ml-0">Reports</h2>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button id="refresh-data" class="text-gray-400 hover:text-white" title="Refresh data">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+            <div class="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white">
+              <span class="font-medium text-sm">AC</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page content -->
+      <div class="p-6">
+        <!-- Page title and actions -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+          <h1 class="text-2xl font-bold leading-tight">
+            ESG Reports
+          </h1>
+          <div class="mt-4 sm:mt-0 flex space-x-3">
+            <button id="generate-report" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md shadow-sm text-sm font-medium">
+              <i class="fas fa-file-pdf mr-2"></i>
+              Generate Report
+            </button>
+            <button id="export-to-powerbi" class="inline-flex items-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-md shadow-sm text-sm font-medium">
+              <i class="fas fa-file-export mr-2"></i>
+              Export to PowerBI
+            </button>
+          </div>
+        </div>
+
+        <!-- Reports grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <!-- Report card 1 -->
+          <div class="bg-dark-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+            <div class="p-5">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="text-lg font-semibold">Monthly ESG Report</h3>
+                  <p class="text-gray-400 text-sm mt-1">July 2023</p>
+                </div>
+                <span class="text-xs font-medium bg-success-600 text-white px-2.5 py-1 rounded-full">Complete</span>
+              </div>
+              
+              <div class="flex items-center mt-4 space-x-4">
+                <div>
+                  <p class="text-xs text-gray-400">ESG Rating</p>
+                  <p class="text-lg font-bold text-success-500">A-</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400">Carbon Emissions</p>
+                  <p class="text-lg font-medium">-12.3%</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400">Energy Usage</p>
+                  <p class="text-lg font-medium">-8.7%</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-dark-700 px-5 py-3 flex justify-between">
+              <button class="text-sm text-gray-300 hover:text-white">
+                <i class="fa-solid fa-eye mr-1"></i> View
+              </button>
+              <button class="text-sm text-gray-300 hover:text-white">
+                <i class="fa-solid fa-download mr-1"></i> Download
+              </button>
+              <button class="text-sm text-gray-300 hover:text-white">
+                <i class="fa-solid fa-share-nodes mr-1"></i> Share
+              </button>
+            </div>
+          </div>
+
+          <!-- Report card 2 -->
+          <div class="bg-dark-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+            <div class="p-5">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="text-lg font-semibold">Quarterly ESG Report</h3>
+                  <p class="text-gray-400 text-sm mt-1">Q2 2023</p>
+                </div>
+                <span class="text-xs font-medium bg-success-600 text-white px-2.5 py-1 rounded-full">Complete</span>
+              </div>
+              
+              <div class="flex items-center mt-4 space-x-4">
+                <div>
+                  <p class="text-xs text-gray-400">ESG Rating</p>
+                  <p class="text-lg font-bold text-primary-500">B+</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400">Carbon Emissions</p>
+                  <p class="text-lg font-medium">-5.8%</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400">Energy Usage</p>
+                  <p class="text-lg font-medium">-3.2%</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-dark-700 px-5 py-3 flex justify-between">
+              <button class="text-sm text-gray-300 hover:text-white">
+                <i class="fa-solid fa-eye mr-1"></i> View
+              </button>
+              <button class="text-sm text-gray-300 hover:text-white">
+                <i class="fa-solid fa-download mr-1"></i> Download
+              </button>
+              <button class="text-sm text-gray-300 hover:text-white">
+                <i class="fa-solid fa-share-nodes mr-1"></i> Share
+              </button>
+            </div>
+          </div>
+
+          <!-- Report card 3 (in progress) -->
+          <div class="bg-dark-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden opacity-80">
+            <div class="p-5">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="text-lg font-semibold">Annual ESG Report</h3>
+                  <p class="text-gray-400 text-sm mt-1">2023</p>
+                </div>
+                <span class="text-xs font-medium bg-warning-500 text-white px-2.5 py-1 rounded-full">In Progress</span>
+              </div>
+              
+              <div class="flex items-center mt-4 space-x-4">
+                <div>
+                  <p class="text-xs text-gray-400">ESG Rating</p>
+                  <p class="text-lg font-bold text-gray-400">Pending</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400">Completion</p>
+                  <p class="text-lg font-medium">68%</p>
+                </div>
+                <div>
+                  <p class="text-xs text-gray-400">Due Date</p>
+                  <p class="text-lg font-medium">Dec 31</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-dark-700 px-5 py-3 flex justify-between">
+              <button class="text-sm text-gray-300 hover:text-white">
+                <i class="fa-solid fa-eye mr-1"></i> Preview
+              </button>
+              <button class="text-sm text-gray-300 hover:text-white">
+                <i class="fa-solid fa-pencil mr-1"></i> Edit
+              </button>
+              <button class="text-sm text-gray-300 hover:text-white opacity-50" disabled>
+                <i class="fa-solid fa-share-nodes mr-1"></i> Share
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report templates -->
+        <div class="mt-10">
+          <h2 class="text-xl font-semibold mb-4">Report Templates</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Template 1 -->
+            <div class="bg-dark-800 rounded-xl border border-gray-700 p-5 hover:border-primary-500 transition-colors cursor-pointer">
+              <div class="flex items-center space-x-3 mb-3">
+                <div class="bg-primary-600/20 p-2 rounded">
+                  <i class="fa-solid fa-file-lines text-primary-500"></i>
+                </div>
+                <h3 class="font-medium">Standard ESG Report</h3>
+              </div>
+              <p class="text-gray-400 text-sm">Comprehensive ESG report with all standard metrics and visualizations.</p>
+              <button class="mt-4 w-full py-2 bg-dark-700 hover:bg-dark-600 rounded-lg text-sm transition-colors">Use Template</button>
+            </div>
+            
+            <!-- Template 2 -->
+            <div class="bg-dark-800 rounded-xl border border-gray-700 p-5 hover:border-primary-500 transition-colors cursor-pointer">
+              <div class="flex items-center space-x-3 mb-3">
+                <div class="bg-green-600/20 p-2 rounded">
+                  <i class="fa-solid fa-leaf text-green-500"></i>
+                </div>
+                <h3 class="font-medium">Environmental Focus</h3>
+              </div>
+              <p class="text-gray-400 text-sm">Detailed analysis of environmental metrics with carbon emission breakdown.</p>
+              <button class="mt-4 w-full py-2 bg-dark-700 hover:bg-dark-600 rounded-lg text-sm transition-colors">Use Template</button>
+            </div>
+            
+            <!-- Template 3 -->
+            <div class="bg-dark-800 rounded-xl border border-gray-700 p-5 hover:border-primary-500 transition-colors cursor-pointer">
+              <div class="flex items-center space-x-3 mb-3">
+                <div class="bg-purple-600/20 p-2 rounded">
+                  <i class="fa-solid fa-building-user text-purple-500"></i>
+                </div>
+                <h3 class="font-medium">Governance Report</h3>
+              </div>
+              <p class="text-gray-400 text-sm">Focus on governance metrics, board diversity, and compliance data.</p>
+              <button class="mt-4 w-full py-2 bg-dark-700 hover:bg-dark-600 rounded-lg text-sm transition-colors">Use Template</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="bg-dark-800 border-t border-gray-700 px-6 py-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="text-gray-400 text-sm">
+            © 2023 Current+ Enterprise ESG Analytics Platform
+          </div>
+          <div class="mt-2 md:mt-0 text-gray-500 text-xs">
+            Data powered by ThingSpeak | AI Predictions by TensorFlow.js
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Mobile sidebar toggle -->
+  <div class="md:hidden fixed bottom-4 right-4 z-50">
+    <button id="reports-mobile-menu-toggle" class="p-3 rounded-full bg-primary-600 text-white shadow-lg" aria-label="Toggle menu" title="Toggle menu">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+  </div>
+
+  <!-- Mobile menu (off-canvas) -->
+  <div id="mobile-menu" class="fixed inset-0 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50" id="mobile-menu-overlay"></div>
+    <div class="absolute inset-y-0 left-0 w-64 bg-dark-800 shadow-xl transform transition-transform duration-300 ease-in-out">
+      <!-- Mobile menu content -->
+      <div class="p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="bg-primary-600 rounded-md p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white">Current<span class="text-primary-500">+</span></h1>
+          </div>
+          <button id="close-mobile-menu" class="text-gray-400 hover:text-white" title="Close menu">
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+      </div>
+      <nav class="px-4 py-4 space-y-1">
+        <a href="index.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gauge-high w-5 h-5 mr-3"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="reports.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-file-lines w-5 h-5 mr-3"></i>
+          <span>Reports</span>
+        </a>
+        <a href="ai-predictions.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-brain w-5 h-5 mr-3"></i>
+          <span>AI Predictions</span>
+        </a>
+        <a href="analytics.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-chart-simple w-5 h-5 mr-3"></i>
+          <span>Analytics</span>
+        </a>
+        <a href="settings.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gear w-5 h-5 mr-3"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Report Generation Modal -->
+  <div id="report-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-dark-800 rounded-xl max-w-md w-full mx-4 shadow-2xl border border-gray-700">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold">Generate ESG Report</h3>
+          <button id="close-modal" class="text-gray-400 hover:text-white" title="Close dialog">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="mb-4">
+          <p class="text-gray-300 mb-4">Choose options for your AI-generated ESG report:</p>
+          <div class="space-y-3">
+            <div class="flex items-center">
+              <input type="checkbox" id="include-predictions" class="rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500" checked aria-label="Include AI predictions" title="Include AI predictions">
+              <label for="include-predictions" class="ml-2 text-gray-300">Include AI predictions</label>
+            </div>
+            <div class="flex items-center">
+              <input type="checkbox" id="include-charts" class="rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500" checked aria-label="Include data visualizations" title="Include data visualizations">
+              <label for="include-charts" class="ml-2 text-gray-300">Include data visualizations</label>
+            </div>
+            <div class="flex items-center">
+              <input type="checkbox" id="include-recommendations" class="rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500" checked aria-label="Include sustainability recommendations" title="Include sustainability recommendations">
+              <label for="include-recommendations" class="ml-2 text-gray-300">Include sustainability recommendations</label>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end space-x-3 mt-6">
+          <button id="cancel-report" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors">
+            Cancel
+          </button>
+          <button id="confirm-report" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
+            Generate Report
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading indicator -->
+  <div id="loading-indicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="p-6 bg-dark-800 rounded-xl border border-gray-700 shadow-xl">
+      <div class="flex items-center space-x-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500"></div>
+        <p class="text-white" id="loading-text">Processing data...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success notification -->
+  <div id="success-notification" class="fixed bottom-4 right-4 bg-success-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center space-x-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+      </svg>
+      <p id="notification-text">Success!</p>
+    </div>
+  </div>
+  
+  <!-- Error notification -->
+  <div id="error-notification" class="fixed bottom-4 right-4 bg-danger-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center space-x-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+      </svg>
+      <p id="error-text">An error occurred</p>
+    </div>
+  </div>
+
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Custom JavaScript -->
+  <script src="js/main.js"></script>
+  <script src="js/report-generator.js"></script>
+  
+  <script>
+    // Reports page specific JavaScript
+    document.addEventListener('DOMContentLoaded', () => {
+      // Mobile menu functionality
+      const mobileMenuToggle = document.getElementById('reports-mobile-menu-toggle');
+      const mobileMenu = document.getElementById('mobile-menu');
+      const closeMobileMenu = document.getElementById('close-mobile-menu');
+      const mobileMenuOverlay = document.getElementById('mobile-menu-overlay');
+
+      if (mobileMenuToggle && mobileMenu && closeMobileMenu && mobileMenuOverlay) {
+        mobileMenuToggle.addEventListener('click', () => {
+          mobileMenu.classList.remove('-translate-x-full');
+        });
+
+        closeMobileMenu.addEventListener('click', () => {
+          mobileMenu.classList.add('-translate-x-full');
+        });
+
+        mobileMenuOverlay.addEventListener('click', () => {
+          mobileMenu.classList.add('-translate-x-full');
+        });
+      }
+      
+      // Generate Report button
+      const generateReportBtn = document.getElementById('generate-report-btn');
+      const reportModal = document.getElementById('report-modal');
+      const closeModal = document.getElementById('close-modal');
+      const cancelReport = document.getElementById('cancel-report');
+      const confirmReport = document.getElementById('confirm-report');
+      
+      if (generateReportBtn && reportModal) {
+        generateReportBtn.addEventListener('click', () => {
+          reportModal.classList.remove('hidden');
+        });
+        
+        if (closeModal) {
+          closeModal.addEventListener('click', () => {
+            reportModal.classList.add('hidden');
+          });
+        }
+        
+        if (cancelReport) {
+          cancelReport.addEventListener('click', () => {
+            reportModal.classList.add('hidden');
+          });
+        }
+        
+        if (confirmReport) {
+          confirmReport.addEventListener('click', async () => {
+            // Hide modal
+            reportModal.classList.add('hidden');
+            
+            // Get report options
+            const includePredictions = document.getElementById('include-predictions')?.checked ?? true;
+            const includeCharts = document.getElementById('include-charts')?.checked ?? true;
+            const includeRecommendations = document.getElementById('include-recommendations')?.checked ?? true;
+            
+            // Show loading
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+              const loadingText = document.getElementById('loading-text');
+              if (loadingText) loadingText.textContent = 'Generating ESG report...';
+              loadingIndicator.classList.remove('hidden');
+            }
+            
+            // Generate report
+            try {
+              if (typeof generateESGReport === 'function') {
+                await generateESGReport({
+                  includePredictions,
+                  includeCharts,
+                  includeRecommendations
+                });
+                showSuccessMessage('ESG report generated successfully');
+              } else {
+                console.error('generateESGReport function not found');
+                showError('Could not generate report');
+              }
+            } catch (error) {
+              console.error('Error generating report:', error);
+              showError('Error generating report: ' + error.message);
+            } finally {
+              // Hide loading
+              if (loadingIndicator) {
+                loadingIndicator.classList.add('hidden');
+              }
+            }
+          });
+        }
+      }
+      
+      // Report actions (View, Download, Share)
+      const viewBtns = document.querySelectorAll('button:has(.fa-eye)');
+      const downloadBtns = document.querySelectorAll('button:has(.fa-download)');
+      const shareBtns = document.querySelectorAll('button:has(.fa-share-nodes)');
+      
+      viewBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const reportCard = this.closest('.bg-dark-800');
+          const reportTitle = reportCard?.querySelector('h3')?.textContent || 'Report';
+          showSuccessMessage(`Viewing ${reportTitle}`);
+          // In a real app, this would open the report viewer
+        });
+      });
+      
+      downloadBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const reportCard = this.closest('.bg-dark-800');
+          const reportTitle = reportCard?.querySelector('h3')?.textContent || 'Report';
+          showSuccessMessage(`Downloading ${reportTitle}`);
+          // In a real app, this would download the report
+        });
+      });
+      
+      shareBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          const reportCard = this.closest('.bg-dark-800');
+          const reportTitle = reportCard?.querySelector('h3')?.textContent || 'Report';
+          showSuccessMessage(`Sharing ${reportTitle}`);
+          // In a real app, this would open a share dialog
+        });
+      });
+      
+      // Helper function to show success message
+      function showSuccessMessage(message) {
+        const notification = document.getElementById('success-notification');
+        const text = document.getElementById('notification-text');
+        if (notification && text) {
+          text.textContent = message;
+          notification.classList.remove('hidden');
+          setTimeout(() => {
+            notification.classList.add('hidden');
+          }, 3000);
+        }
+      }
+      
+      // Helper function to show error message
+      function showError(message) {
+        const notification = document.getElementById('error-notification');
+        const text = document.getElementById('error-text');
+        if (notification && text) {
+          text.textContent = message;
+          notification.classList.remove('hidden');
+          setTimeout(() => {
+            notification.classList.add('hidden');
+          }, 5000);
+        }
+      }
+    });
+  </script>
+</body>
+</html> 

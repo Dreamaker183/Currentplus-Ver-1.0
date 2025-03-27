@@ -1,0 +1,384 @@
+/* Current+ Enterprise ESG Reporting - Custom Styles
+   Author: Current+ Team
+   Version: 1.0.0
+*/
+
+/* Base Styles & Animations */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(64, 169, 255, 0.5) rgba(31, 41, 55, 0.5);
+}
+
+body::-webkit-scrollbar {
+  width: 8px;
+}
+
+body::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: rgba(64, 169, 255, 0.5);
+  border-radius: 4px;
+}
+
+/* Custom Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card and component animations */
+.bg-dark-800 {
+  transition: all 0.3s ease;
+}
+
+.bg-dark-800:hover {
+  box-shadow: 0 0 15px rgba(24, 144, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Dashboard item animations */
+main .grid > div {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+main .grid > div:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+main .grid > div:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+main .grid > div:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+main .grid > div:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+/* Glow effects for important elements */
+#energyUsage, #carbonEmissions, #aiSustainabilityScore, #esgRating {
+  position: relative;
+}
+
+#energyUsage::after, 
+#carbonEmissions::after, 
+#aiSustainabilityScore::after, 
+#esgRating::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 30px;
+  transform: translateY(-50%);
+  background: radial-gradient(ellipse at center, rgba(64, 169, 255, 0.2) 0%, rgba(17, 24, 39, 0) 70%);
+  opacity: 0.5;
+  z-index: -1;
+  filter: blur(5px);
+}
+
+#carbonEmissions::after {
+  background: radial-gradient(ellipse at center, rgba(82, 196, 26, 0.2) 0%, rgba(17, 24, 39, 0) 70%);
+}
+
+#aiSustainabilityScore::after {
+  background: radial-gradient(ellipse at center, rgba(114, 46, 209, 0.2) 0%, rgba(17, 24, 39, 0) 70%);
+}
+
+#esgRating::after {
+  background: radial-gradient(ellipse at center, rgba(24, 144, 255, 0.2) 0%, rgba(17, 24, 39, 0) 70%);
+}
+
+/* Loading animations */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Enhanced focus styles for accessibility */
+:focus {
+  outline: 2px solid rgba(64, 169, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* Button hover effects */
+button {
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: translate(-50%, -50%) scale(1);
+  transition: opacity 0.5s, transform 0.5s;
+}
+
+button:active::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(20);
+  transition: transform 0.3s;
+}
+
+/* Print styles for reports */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  aside, header, footer, button, .bg-dark-800, .bg-dark-900 {
+    background: white !important;
+    color: black !important;
+    border-color: #eee !important;
+  }
+  
+  #reportSummary {
+    page-break-inside: avoid;
+  }
+  
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* Charts customization */
+canvas {
+  max-height: 100%;
+  max-width: 100%;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .text-3xl {
+    font-size: 1.5rem;
+  }
+}
+
+/* Accessibility enhancements */
+.sr-only:not(:focus):not(:active) {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Dark mode glow effects */
+.bg-primary-600 {
+  box-shadow: 0 0 15px rgba(24, 144, 255, 0.3);
+}
+
+.bg-secondary-500 {
+  box-shadow: 0 0 15px rgba(114, 46, 209, 0.3);
+}
+
+/* Custom progress bar animations */
+[id^="envProgress"], [id^="socialProgress"], [id^="govProgress"] {
+  transition: width 1s ease-in-out;
+}
+
+/* Tooltip styles */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background: rgba(31, 41, 55, 0.95);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* PDF report formatting */
+.pdf-page {
+  background-color: white;
+  color: #333;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Custom toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(31, 41, 55, 0.5);
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: rgba(24, 144, 255, 0.8);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Progress bar width classes */
+.progress-width-30 {
+  width: 30%;
+}
+.progress-width-45 {
+  width: 45%;
+}
+.progress-width-60 {
+  width: 60%;
+}
+.progress-width-65 {
+  width: 65%;
+}
+.progress-width-70 {
+  width: 70%;
+}
+.progress-width-78 {
+  width: 78%;
+}
+.progress-width-80 {
+  width: 80%;
+}
+.progress-width-85 {
+  width: 85%;
+}
+.progress-width-87 {
+  width: 87%;
+}
+.progress-width-89 {
+  width: 89%;
+}
+.progress-width-92 {
+  width: 92%;
+}
+.progress-width-93 {
+  width: 93%;
+}
+
+/* Scrollbar styles with vendor prefixes for better compatibility */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Firefox */
+@-moz-document url-prefix() {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #1e293b;
+  }
+}
+
+/* For IE and Edge legacy */
+@supports (-ms-overflow-style: none) {
+  html, body {
+    -ms-overflow-style: auto;
+  }
+  
+  .scrollable-content {
+    -ms-overflow-style: auto;
+  }
+}
+
+/* Fallback scrollbar styling for browsers that don't support custom scrollbars */
+.scrollable-container {
+  overflow: auto;
+  /* Standard property */
+  scrollbar-color: rgba(100, 116, 139, 0.5) rgba(30, 41, 59, 0.8);
+  scrollbar-width: thin;
+} 

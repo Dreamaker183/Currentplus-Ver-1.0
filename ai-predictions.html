@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Predictions | Current+ Enterprise ESG Analytics Platform</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Custom Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              100: '#E6F7FF',
+              200: '#BAE7FF',
+              300: '#91D5FF',
+              400: '#69C0FF',
+              500: '#40A9FF',
+              600: '#1890FF',
+              700: '#096DD9',
+              800: '#0050B3',
+              900: '#003A8C',
+            },
+            secondary: {
+              500: '#722ED1',
+            },
+            dark: {
+              800: '#1F2937',
+              900: '#111827',
+            },
+            success: {
+              500: '#52C41A',
+              600: '#389E0D',
+            },
+            warning: {
+              500: '#FAAD14',
+            },
+            danger: {
+              500: '#F5222D',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <!-- Preload fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Load dependencies coordinator before any other script -->
+  <script src="js/loader.js"></script>
+  
+  <!-- Our application scripts (will run after dependencies are loaded) -->
+  <script src="js/main.js" defer></script>
+  <script src="js/charts.js" defer></script>
+  <script src="js/ai-model.js" defer></script>
+  <script src="js/report-generator.js" defer></script>
+</head>
+<body class="bg-dark-900 text-white font-sans min-h-screen">
+  <!-- Skip to main content for accessibility -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:bg-primary-600 focus:text-white">Skip to main content</a>
+
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 border-r border-gray-700 bg-dark-800 hidden md:block">
+      <div class="p-6">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary-600 rounded-md p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h1 class="text-2xl font-bold">Current<span class="text-primary-500">+</span></h1>
+        </div>
+      </div>
+      <nav class="px-4 py-4 space-y-1">
+        <a href="index.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gauge-high w-5 h-5 mr-3"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="reports.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-file-lines w-5 h-5 mr-3"></i>
+          <span>Reports</span>
+        </a>
+        <a href="ai-predictions.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-brain w-5 h-5 mr-3"></i>
+          <span>AI Predictions</span>
+        </a>
+        <a href="analytics.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-chart-simple w-5 h-5 mr-3"></i>
+          <span>Analytics</span>
+        </a>
+        <a href="settings.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gear w-5 h-5 mr-3"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-y-auto">
+      <!-- Top navigation -->
+      <header class="bg-dark-800 shadow-md border-b border-gray-700">
+        <div class="flex items-center justify-between px-6 py-4">
+          <div class="flex items-center">
+            <button id="mobile-menu-toggle" class="text-gray-400 hover:text-white md:hidden" aria-label="Toggle mobile menu">
+              <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <h2 class="text-xl font-semibold ml-4 md:ml-0">AI Predictions</h2>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button id="refresh-data" class="text-gray-400 hover:text-white" title="Refresh data">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+            <div class="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white">
+              <span class="font-medium text-sm">AC</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page content -->
+      <div class="p-6">
+        <!-- Page title and actions -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+          <h1 class="text-2xl font-bold leading-tight">
+            AI Predictions & Insights
+          </h1>
+          <div class="mt-4 sm:mt-0 flex space-x-3">
+            <button id="update-predictions-btn" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-md shadow-sm text-sm font-medium">
+              <i class="fas fa-sync-alt mr-2"></i>
+              Update Predictions
+            </button>
+            <button id="export-to-powerbi" class="inline-flex items-center px-4 py-2 bg-dark-700 hover:bg-dark-600 text-white rounded-md shadow-sm text-sm font-medium">
+              <i class="fas fa-file-export mr-2"></i>
+              Export to PowerBI
+            </button>
+          </div>
+        </div>
+
+        <!-- Prediction accuracy card -->
+        <div class="bg-dark-800 rounded-xl border border-gray-700 shadow-lg p-5 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">AI Model Accuracy</h3>
+            <span class="bg-primary-600/20 text-primary-400 px-3 py-1 rounded-full text-sm">Updated 2 hours ago</span>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="p-4 bg-dark-700 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-gray-400 text-sm">Energy Prediction</p>
+                  <p class="text-2xl font-semibold mt-1">92.3%</p>
+                </div>
+                <div class="h-12 w-12 rounded-full bg-primary-600/20 flex items-center justify-center">
+                  <i class="fa-solid fa-bolt text-primary-500 text-xl"></i>
+                </div>
+              </div>
+              <div class="w-full bg-dark-600 rounded-full h-1.5 mt-4">
+                <div class="bg-primary-500 h-1.5 rounded-full progress-width-92"></div>
+              </div>
+            </div>
+            
+            <div class="p-4 bg-dark-700 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-gray-400 text-sm">Carbon Emissions</p>
+                  <p class="text-2xl font-semibold mt-1">87.5%</p>
+                </div>
+                <div class="h-12 w-12 rounded-full bg-green-600/20 flex items-center justify-center">
+                  <i class="fa-solid fa-cloud text-green-500 text-xl"></i>
+                </div>
+              </div>
+              <div class="w-full bg-dark-600 rounded-full h-1.5 mt-4">
+                <div class="bg-green-500 h-1.5 rounded-full progress-width-87"></div>
+              </div>
+            </div>
+            
+            <div class="p-4 bg-dark-700 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-gray-400 text-sm">ESG Score</p>
+                  <p class="text-2xl font-semibold mt-1">89.1%</p>
+                </div>
+                <div class="h-12 w-12 rounded-full bg-purple-600/20 flex items-center justify-center">
+                  <i class="fa-solid fa-chart-line text-purple-500 text-xl"></i>
+                </div>
+              </div>
+              <div class="w-full bg-dark-600 rounded-full h-1.5 mt-4">
+                <div class="bg-purple-500 h-1.5 rounded-full progress-width-89"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Forecast charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- Energy forecast chart -->
+          <div class="bg-dark-800 rounded-xl border border-gray-700 shadow-lg p-5">
+            <h3 class="text-lg font-semibold mb-4">Energy Consumption Forecast</h3>
+            <div class="h-64 flex items-center justify-center">
+              <div class="w-full h-full bg-dark-700 rounded-lg flex items-center justify-center">
+                <!-- This would be replaced by an actual chart in a real implementation -->
+                <div class="text-center">
+                  <i class="fa-solid fa-chart-line text-3xl text-primary-500 mb-2"></i>
+                  <p class="text-gray-400">Energy consumption forecast chart would display here</p>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-4">
+              <div class="bg-dark-700 p-3 rounded-lg">
+                <p class="text-gray-400 text-sm">Forecasted Change</p>
+                <p class="text-lg font-medium text-success-500">-8.3%</p>
+                <p class="text-xs text-gray-500">Next 30 days</p>
+              </div>
+              <div class="bg-dark-700 p-3 rounded-lg">
+                <p class="text-gray-400 text-sm">Confidence Level</p>
+                <p class="text-lg font-medium">92%</p>
+                <p class="text-xs text-gray-500">Based on historical data</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Carbon emissions forecast chart -->
+          <div class="bg-dark-800 rounded-xl border border-gray-700 shadow-lg p-5">
+            <h3 class="text-lg font-semibold mb-4">Carbon Emissions Forecast</h3>
+            <div class="h-64 flex items-center justify-center">
+              <div class="w-full h-full bg-dark-700 rounded-lg flex items-center justify-center">
+                <!-- This would be replaced by an actual chart in a real implementation -->
+                <div class="text-center">
+                  <i class="fa-solid fa-chart-area text-3xl text-green-500 mb-2"></i>
+                  <p class="text-gray-400">Carbon emissions forecast chart would display here</p>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-4">
+              <div class="bg-dark-700 p-3 rounded-lg">
+                <p class="text-gray-400 text-sm">Forecasted Change</p>
+                <p class="text-lg font-medium text-success-500">-12.7%</p>
+                <p class="text-xs text-gray-500">Next 30 days</p>
+              </div>
+              <div class="bg-dark-700 p-3 rounded-lg">
+                <p class="text-gray-400 text-sm">Confidence Level</p>
+                <p class="text-lg font-medium">88%</p>
+                <p class="text-xs text-gray-500">Based on historical data</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI-Generated Recommendations -->
+        <div class="bg-dark-800 rounded-xl border border-gray-700 shadow-lg p-5 mb-6">
+          <h3 class="text-lg font-semibold mb-4">AI-Generated Sustainability Recommendations</h3>
+          
+          <div class="space-y-4">
+            <!-- Recommendation 1 -->
+            <div class="p-4 bg-dark-700 rounded-lg border-l-4 border-success-500">
+              <div class="flex items-start">
+                <div class="mt-1 mr-4">
+                  <div class="h-8 w-8 rounded-full bg-success-600/20 flex items-center justify-center">
+                    <i class="fa-solid fa-lightbulb text-success-500"></i>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="font-medium">Optimize HVAC Operating Hours</h4>
+                  <p class="text-gray-400 text-sm mt-1">Our AI model detected a pattern of energy usage during off-hours. Reducing HVAC operation by 2 hours daily could reduce consumption by 8.3% and save approximately $1,245 per month.</p>
+                  <div class="mt-3 flex items-center">
+                    <span class="text-xs bg-success-600/20 text-success-500 px-2 py-1 rounded-full">High Impact</span>
+                    <span class="text-xs bg-primary-600/20 text-primary-400 px-2 py-1 rounded-full ml-2">Easy Implementation</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Recommendation 2 -->
+            <div class="p-4 bg-dark-700 rounded-lg border-l-4 border-primary-500">
+              <div class="flex items-start">
+                <div class="mt-1 mr-4">
+                  <div class="h-8 w-8 rounded-full bg-primary-600/20 flex items-center justify-center">
+                    <i class="fa-solid fa-solar-panel text-primary-500"></i>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="font-medium">Implement Solar Energy Solution</h4>
+                  <p class="text-gray-400 text-sm mt-1">Based on your location and energy usage patterns, installing a 50kW solar array would offset approximately 35% of your energy consumption with a projected ROI within 4.7 years.</p>
+                  <div class="mt-3 flex items-center">
+                    <span class="text-xs bg-success-600/20 text-success-500 px-2 py-1 rounded-full">High Impact</span>
+                    <span class="text-xs bg-warning-500/20 text-warning-400 px-2 py-1 rounded-full ml-2">Medium Implementation</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Recommendation 3 -->
+            <div class="p-4 bg-dark-700 rounded-lg border-l-4 border-purple-500">
+              <div class="flex items-start">
+                <div class="mt-1 mr-4">
+                  <div class="h-8 w-8 rounded-full bg-purple-600/20 flex items-center justify-center">
+                    <i class="fa-solid fa-building-user text-purple-500"></i>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="font-medium">Employee Engagement Program</h4>
+                  <p class="text-gray-400 text-sm mt-1">Organizations with active employee sustainability programs show an average 12% reduction in energy use. Our AI model suggests implementing a gamified sustainability challenge to reduce waste and energy consumption.</p>
+                  <div class="mt-3 flex items-center">
+                    <span class="text-xs bg-warning-500/20 text-warning-400 px-2 py-1 rounded-full">Medium Impact</span>
+                    <span class="text-xs bg-primary-600/20 text-primary-400 px-2 py-1 rounded-full ml-2">Easy Implementation</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ESG Prediction -->
+        <div class="bg-dark-800 rounded-xl border border-gray-700 shadow-lg p-5">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <div>
+              <h3 class="text-lg font-semibold">Future ESG Rating Prediction</h3>
+              <p class="text-gray-400 text-sm mt-1">Based on current trajectory and AI recommendations</p>
+            </div>
+            <div class="mt-4 md:mt-0">
+              <div class="bg-dark-700 rounded-full px-4 py-1 flex items-center">
+                <span class="text-gray-400 text-sm mr-2">Timeframe:</span>
+                <select class="bg-transparent text-white text-sm border-0 focus:ring-0" aria-label="Prediction timeframe">
+                  <option>3 months</option>
+                  <option selected>6 months</option>
+                  <option>1 year</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-dark-700 rounded-lg p-4">
+              <h4 class="text-sm text-gray-400">Current ESG Rating</h4>
+              <div class="flex items-center mt-2">
+                <div class="h-16 w-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-2xl font-bold">
+                  B+
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-400">Score</p>
+                  <p class="text-lg font-medium">73<span class="text-sm text-gray-400">/100</span></p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-dark-700 rounded-lg p-4">
+              <h4 class="text-sm text-gray-400">Predicted ESG Rating</h4>
+              <div class="flex items-center mt-2">
+                <div class="h-16 w-16 rounded-full bg-success-600 flex items-center justify-center text-white text-2xl font-bold">
+                  A-
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm text-gray-400">Predicted Score</p>
+                  <p class="text-lg font-medium">86<span class="text-sm text-gray-400">/100</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6">
+            <h4 class="text-sm font-medium mb-2">Score Improvement Breakdown</h4>
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <p class="text-xs text-gray-400">Environmental</p>
+                <div class="w-full bg-dark-600 rounded-full h-1.5 mt-1">
+                  <div class="bg-green-500 h-1.5 rounded-full progress-width-85"></div>
+                </div>
+                <div class="flex justify-between text-xs mt-1">
+                  <span>71</span>
+                  <span class="text-success-500">→ 85</span>
+                </div>
+              </div>
+              
+              <div>
+                <p class="text-xs text-gray-400">Social</p>
+                <div class="w-full bg-dark-600 rounded-full h-1.5 mt-1">
+                  <div class="bg-blue-500 h-1.5 rounded-full progress-width-78"></div>
+                </div>
+                <div class="flex justify-between text-xs mt-1">
+                  <span>72</span>
+                  <span class="text-success-500">→ 78</span>
+                </div>
+              </div>
+              
+              <div>
+                <p class="text-xs text-gray-400">Governance</p>
+                <div class="w-full bg-dark-600 rounded-full h-1.5 mt-1">
+                  <div class="bg-purple-500 h-1.5 rounded-full progress-width-93"></div>
+                </div>
+                <div class="flex justify-between text-xs mt-1">
+                  <span>76</span>
+                  <span class="text-success-500">→ 93</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="bg-dark-800 border-t border-gray-700 px-6 py-4 mt-6">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="text-gray-400 text-sm">
+            © 2023 Current+ Enterprise ESG Analytics Platform
+          </div>
+          <div class="mt-2 md:mt-0 text-gray-500 text-xs">
+            Data powered by ThingSpeak | AI Predictions by TensorFlow.js
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Mobile sidebar toggle -->
+  <div class="md:hidden fixed bottom-4 right-4 z-50">
+    <button id="ai-predictions-mobile-menu-toggle" class="p-3 rounded-full bg-primary-600 text-white shadow-lg" aria-label="Toggle menu" title="Toggle menu">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+  </div>
+
+  <!-- Mobile menu (off-canvas) -->
+  <div id="mobile-menu" class="fixed inset-0 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50" id="mobile-menu-overlay"></div>
+    <div class="absolute inset-y-0 left-0 w-64 bg-dark-800 shadow-xl transform transition-transform duration-300 ease-in-out">
+      <!-- Mobile menu content -->
+      <div class="p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="bg-primary-600 rounded-md p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white">Current<span class="text-primary-500">+</span></h1>
+          </div>
+          <button id="close-mobile-menu" class="text-gray-400 hover:text-white" title="Close menu">
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+      </div>
+      <nav class="px-4 py-4 space-y-1">
+        <a href="index.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gauge-high w-5 h-5 mr-3"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="reports.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-file-lines w-5 h-5 mr-3"></i>
+          <span>Reports</span>
+        </a>
+        <a href="ai-predictions.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-brain w-5 h-5 mr-3"></i>
+          <span>AI Predictions</span>
+        </a>
+        <a href="analytics.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-chart-simple w-5 h-5 mr-3"></i>
+          <span>Analytics</span>
+        </a>
+        <a href="settings.html" class="flex items-center px-4 py-3 text-gray-300 rounded-lg hover:bg-gray-700 group transition-colors duration-200 ease-in-out">
+          <i class="fa-solid fa-gear w-5 h-5 mr-3"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div id="loading-indicator" class="fixed inset-0 bg-dark-900 bg-opacity-80 flex items-center justify-center z-50 hidden">
+    <div class="bg-dark-800 rounded-lg p-6 max-w-md text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-primary-500 border-r-2 mx-auto mb-4"></div>
+      <p id="loading-text" class="text-lg">Loading data...</p>
+    </div>
+  </div>
+  
+  <!-- Success Notification -->
+  <div id="success-notification" class="fixed top-4 right-4 flex items-center bg-green-900 text-green-100 px-4 py-3 rounded-md shadow-lg z-50 hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+    </svg>
+    <span id="notification-text">Operation completed successfully!</span>
+  </div>
+  
+  <!-- Error Notification -->
+  <div id="error-notification" class="fixed top-4 right-4 flex items-center bg-red-900 text-red-100 px-4 py-3 rounded-md shadow-lg z-50 hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+    </svg>
+    <span id="error-text">An error occurred. Please try again.</span>
+  </div>
+</body>
+</html> 

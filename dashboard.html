@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current+ Enterprise ESG Analytics - Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load error handling and safety utilities first -->
+    <script src="js/dom-safe.js" defer></script>
+    <script src="js/thingspeak-error-handler.js" defer></script>
+    
+    <!-- Load ThingSpeak connectivity libraries -->
+    <script src="js/thingspeak-connector.js" defer></script>
+    <script src="js/thingspeak-helper.js" defer></script>
+    
+    <!-- Load Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    
+    <!-- Load main app scripts -->
+    <script src="js/main.js" defer></script>
+    <script src="js/dashboard.js" defer></script>
+</head>
+<body class="bg-gray-950 text-white">
+    <!-- Header section -->
+    <header class="bg-gradient-to-r from-blue-900 to-purple-900 p-4 shadow-lg">
+        <div class="container mx-auto">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Current+ Enterprise ESG Analytics</h1>
+                <nav>
+                    <ul class="flex space-x-4">
+                        <li><a href="index.html" class="text-blue-300 font-bold">Dashboard</a></li>
+                        <li><a href="settings.html" class="hover:text-blue-300 transition">Settings</a></li>
+                        <li><a href="about.html" class="hover:text-blue-300 transition">About</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="container mx-auto p-6">
+        <!-- Status Bar -->
+        <div class="bg-gray-800 rounded-lg shadow-lg p-4 mb-6">
+            <div class="flex flex-wrap justify-between items-center">
+                <div class="flex items-center">
+                    <span id="connection-status" class="mr-4">
+                        <i class="fas fa-circle-notch fa-spin text-blue-400 mr-2"></i> Connecting...
+                    </span>
+                    <span id="channel-name" class="text-gray-300">Loading channel info...</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-gray-400 mr-2">Last updated:</span>
+                    <span id="last-updated" class="text-gray-300">Never</span>
+                    <button id="refresh-data" class="ml-4 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Metrics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- Energy Consumption -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold">Energy Consumption</h2>
+                    <span class="bg-blue-600 text-white rounded-full p-2">
+                        <i class="fas fa-bolt"></i>
+                    </span>
+                </div>
+                <p id="current-energy-value" class="text-3xl font-bold mb-2">-- kWh</p>
+                <p class="text-gray-400 text-sm">Current consumption</p>
+            </div>
+
+            <!-- Carbon Emissions -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold">Carbon Emissions</h2>
+                    <span class="bg-green-600 text-white rounded-full p-2">
+                        <i class="fas fa-leaf"></i>
+                    </span>
+                </div>
+                <p id="current-carbon-value" class="text-3xl font-bold mb-2">-- kg CO₂</p>
+                <p class="text-gray-400 text-sm">Carbon footprint</p>
+            </div>
+
+            <!-- Temperature -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold">Temperature</h2>
+                    <span class="bg-red-600 text-white rounded-full p-2">
+                        <i class="fas fa-temperature-high"></i>
+                    </span>
+                </div>
+                <p id="current-temperature-value" class="text-3xl font-bold mb-2">-- °C</p>
+                <p class="text-gray-400 text-sm">Current temperature</p>
+            </div>
+        </div>
+
+        <!-- Chart Sections -->
+        <div class="mb-6">
+            <!-- Energy Consumption Chart -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Energy Consumption Trend</h2>
+                    <div class="flex space-x-2">
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="day">Day</button>
+                        <button class="timeframe-btn px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="week">Week</button>
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="month">Month</button>
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="year">Year</button>
+                    </div>
+                </div>
+                <div class="h-80">
+                    <canvas id="energy-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Carbon Emissions Chart -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Carbon Emissions Analysis</h2>
+                    <div class="flex space-x-2">
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="day">Day</button>
+                        <button class="timeframe-btn px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="week">Week</button>
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="month">Month</button>
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="year">Year</button>
+                    </div>
+                </div>
+                <div class="h-80">
+                    <canvas id="carbon-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Temperature Chart -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Temperature Trend</h2>
+                    <div class="flex space-x-2">
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="day">Day</button>
+                        <button class="timeframe-btn px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="week">Week</button>
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="month">Month</button>
+                        <button class="timeframe-btn px-3 py-1 bg-gray-700 text-white rounded-md hover:bg-blue-700 transition" data-timeframe="year">Year</button>
+                    </div>
+                </div>
+                <div class="h-80">
+                    <canvas id="temperature-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESG Score Section -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <!-- Overall ESG Score -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold">ESG Score</h2>
+                    <span class="bg-purple-600 text-white rounded-full p-2">
+                        <i class="fas fa-chart-line"></i>
+                    </span>
+                </div>
+                <div class="flex items-center justify-center mb-2">
+                    <div class="relative w-32 h-32">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span id="esg-score" class="text-4xl font-bold">--</span>
+                        </div>
+                        <svg class="w-full h-full" viewBox="0 0 36 36">
+                            <path class="bg-gray-700" stroke-dasharray="100, 100" stroke-dashoffset="0" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3" stroke-linecap="round" />
+                            <path class="score-fill" id="esg-score-circle" stroke-dasharray="75, 100" stroke-dashoffset="0" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#9333ea" stroke-width="3" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-center text-gray-400 text-sm">Overall ESG Rating</p>
+            </div>
+
+            <!-- Environmental Score -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold">Environmental</h2>
+                    <span class="bg-green-600 text-white rounded-full p-2">
+                        <i class="fas fa-tree"></i>
+                    </span>
+                </div>
+                <p id="environment-score" class="text-3xl font-bold text-center mb-2">--</p>
+                <div class="w-full bg-gray-700 rounded-full h-2.5">
+                    <div id="environment-score-bar" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <p class="mt-2 text-center text-gray-400 text-sm">Environmental Score</p>
+            </div>
+
+            <!-- Social Score -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold">Social</h2>
+                    <span class="bg-blue-600 text-white rounded-full p-2">
+                        <i class="fas fa-users"></i>
+                    </span>
+                </div>
+                <p id="social-score" class="text-3xl font-bold text-center mb-2">--</p>
+                <div class="w-full bg-gray-700 rounded-full h-2.5">
+                    <div id="social-score-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <p class="mt-2 text-center text-gray-400 text-sm">Social Score</p>
+            </div>
+
+            <!-- Governance Score -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-xl font-bold">Governance</h2>
+                    <span class="bg-yellow-600 text-white rounded-full p-2">
+                        <i class="fas fa-balance-scale"></i>
+                    </span>
+                </div>
+                <p id="governance-score" class="text-3xl font-bold text-center mb-2">--</p>
+                <div class="w-full bg-gray-700 rounded-full h-2.5">
+                    <div id="governance-score-bar" class="bg-yellow-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <p class="mt-2 text-center text-gray-400 text-sm">Governance Score</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer section -->
+    <footer class="bg-gray-900 p-6 mt-12">
+        <div class="container mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div>
+                    <p>&copy; 2023 Current+ ESG Analytics. All rights reserved.</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <p>Powered by <a href="https://www.thingspeak.com/" target="_blank" class="text-blue-400 hover:underline" rel="noopener noreferrer">ThingSpeak</a> and <a href="https://current.plus" target="_blank" class="text-blue-400 hover:underline" rel="noopener noreferrer">Current+</a></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Notification elements -->
+    <div id="error-notification" class="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-md shadow-lg hidden">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                <span id="error-text">Error message</span>
+            </div>
+            <button class="close-btn ml-4 text-white hover:text-gray-200" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loading-indicator" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl">
+            <div class="flex items-center justify-center mb-4">
+                <div class="loader rounded-full border-4 border-t-4 border-gray-500 border-t-blue-500 w-12 h-12 animate-spin"></div>
+            </div>
+            <p id="loading-text" class="text-center text-white">Loading...</p>
+        </div>
+    </div>
+
+    <style>
+        .score-fill {
+            stroke-dashoffset: 25;
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+        
+        /* Animate progress bars when they get values */
+        #environment-score-bar, #social-score-bar, #governance-score-bar {
+            transition: width 1s ease-in-out;
+        }
+    </style>
+
+    <script>
+        // Script to update score visualizations when values change
+        document.addEventListener('DOMContentLoaded', function() {
+            // Monitor for changes to the score elements
+            const esgScoreObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        const scoreValue = parseInt(mutation.target.textContent);
+                        if (!isNaN(scoreValue)) {
+                            // Update the circle visualization
+                            const circleElement = document.getElementById('esg-score-circle');
+                            if (circleElement) {
+                                circleElement.setAttribute('stroke-dasharray', `${scoreValue}, 100`);
+                            }
+                        }
+                    }
+                });
+            });
+            
+            // Start observing the ESG score element
+            const esgScoreElement = document.getElementById('esg-score');
+            if (esgScoreElement) {
+                esgScoreObserver.observe(esgScoreElement, { childList: true });
+            }
+            
+            // Monitor environment score
+            const envScoreObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        const scoreValue = parseInt(mutation.target.textContent);
+                        if (!isNaN(scoreValue)) {
+                            const barElement = document.getElementById('environment-score-bar');
+                            if (barElement) {
+                                barElement.style.width = `${scoreValue}%`;
+                            }
+                        }
+                    }
+                });
+            });
+            
+            const envScoreElement = document.getElementById('environment-score');
+            if (envScoreElement) {
+                envScoreObserver.observe(envScoreElement, { childList: true });
+            }
+            
+            // Monitor social score
+            const socialScoreObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        const scoreValue = parseInt(mutation.target.textContent);
+                        if (!isNaN(scoreValue)) {
+                            const barElement = document.getElementById('social-score-bar');
+                            if (barElement) {
+                                barElement.style.width = `${scoreValue}%`;
+                            }
+                        }
+                    }
+                });
+            });
+            
+            const socialScoreElement = document.getElementById('social-score');
+            if (socialScoreElement) {
+                socialScoreObserver.observe(socialScoreElement, { childList: true });
+            }
+            
+            // Monitor governance score
+            const govScoreObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        const scoreValue = parseInt(mutation.target.textContent);
+                        if (!isNaN(scoreValue)) {
+                            const barElement = document.getElementById('governance-score-bar');
+                            if (barElement) {
+                                barElement.style.width = `${scoreValue}%`;
+                            }
+                        }
+                    }
+                });
+            });
+            
+            const govScoreElement = document.getElementById('governance-score');
+            if (govScoreElement) {
+                govScoreObserver.observe(govScoreElement, { childList: true });
+            }
+        });
+    </script>
+</body>
+</html> 

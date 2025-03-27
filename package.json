@@ -1,0 +1,27 @@
+{
+  "name": "current-plus-esg",
+  "version": "1.0.0",
+  "description": "Current+ Enterprise ESG Analytics Platform - A web-based platform for monitoring and reporting on Environmental, Social, and Governance metrics",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve",
+    "deploy": "netlify deploy --prod"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/current-plus-esg.git"
+  },
+  "keywords": [
+    "ESG",
+    "analytics",
+    "sustainability",
+    "reporting",
+    "dashboard"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chart.js": "^3.9.1",
+    "serve": "^14.2.1"
+  }
+} 
