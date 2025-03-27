@@ -93,11 +93,32 @@
           element = this.getElement(element);
         }
         
-        if (element && element.style) {
+        // Ensure element exists and has a style property before setting
+        if (element && typeof element.style !== 'undefined') {
           element.style[property] = value;
+        } else if (element) {
+          console.warn(`Element exists but style property is undefined`, element);
         }
       } catch (error) {
         console.warn(`Error setting style.${property}: `, error);
+      }
+    },
+    
+    /**
+     * Check if an element exists and has a style property
+     * @param {HTMLElement|string} element - Element or element ID
+     * @returns {boolean} - Whether the element exists and has a style property
+     */
+    canStyle: function(element) {
+      try {
+        if (typeof element === 'string') {
+          element = this.getElement(element);
+        }
+        
+        return !!(element && typeof element.style !== 'undefined');
+      } catch (error) {
+        console.warn('Error checking if element can be styled:', error);
+        return false;
       }
     }
   };
@@ -123,75 +144,102 @@
           // Create the notification if it doesn't exist
           notification = document.createElement('div');
           notification.id = 'global-error-notification';
-          notification.style.position = 'fixed';
-          notification.style.bottom = '20px';
-          notification.style.left = '20px';
-          notification.style.backgroundColor = 'rgba(185, 28, 28, 0.9)';
-          notification.style.color = 'white';
-          notification.style.padding = '10px 15px';
-          notification.style.borderRadius = '5px';
-          notification.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
-          notification.style.zIndex = '9999';
-          notification.style.fontSize = '14px';
-          notification.style.maxWidth = '300px';
+          
+          // Use direct property assignment instead of style.property = value
+          Object.assign(notification.style, {
+            position: 'fixed',
+            bottom: '20px',
+            left: '20px',
+            backgroundColor: 'rgba(185, 28, 28, 0.9)',
+            color: 'white',
+            padding: '10px 15px',
+            borderRadius: '5px',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+            zIndex: '9999',
+            fontSize: '14px',
+            maxWidth: '300px'
+          });
           
           // Add close button
           const closeBtn = document.createElement('button');
           closeBtn.textContent = '×';
-          closeBtn.style.marginLeft = '10px';
-          closeBtn.style.background = 'none';
-          closeBtn.style.border = 'none';
-          closeBtn.style.color = 'white';
-          closeBtn.style.fontSize = '20px';
-          closeBtn.style.cursor = 'pointer';
-          closeBtn.style.float = 'right';
-          closeBtn.style.marginTop = '-5px';
+          
+          // Use direct property assignment for styles
+          Object.assign(closeBtn.style, {
+            marginLeft: '10px',
+            background: 'none',
+            border: 'none',
+            color: 'white',
+            fontSize: '20px',
+            cursor: 'pointer',
+            float: 'right',
+            marginTop: '-5px'
+          });
+          
           closeBtn.onclick = function() {
-            document.body.removeChild(notification);
+            // Only remove if document.body and notification both exist
+            if (document.body && notification && document.body.contains(notification)) {
+              document.body.removeChild(notification);
+            }
           };
           
-          notification.appendChild(closeBtn);
-          document.body.appendChild(notification);
+          // Only append if both notification and closeBtn exist
+          if (notification && closeBtn) {
+            notification.appendChild(closeBtn);
+          }
+          
+          // Only append to body if both document.body and notification exist
+          if (document.body && notification) {
+            document.body.appendChild(notification);
+          }
         }
         
-        // Set content
-        const errorId = event.error.message.substring(0, 50) + '...';
-        const content = document.createElement('div');
-        content.innerHTML = `
-          <strong>Warning:</strong> A non-critical error occurred.<br>
-          <span style="font-size: 12px">The application will continue to work, but some features may be limited.</span>
-          <div id="error-details-${errorId}" style="display: none; margin-top: 10px; font-size: 12px; color: #f8d7da;">
-            ${event.error.message}<br>
-            Location: ${event.filename.split('/').pop()} (line ${event.lineno})
-          </div>
-          <button id="toggle-details-${errorId}" style="background: none; border: none; color: #f8d7da; text-decoration: underline; padding: 0; margin-top: 5px; cursor: pointer; font-size: 12px;">Show details</button>
-        `;
-        
-        // Replace existing content
-        notification.innerHTML = '';
-        notification.appendChild(closeBtn);
-        notification.appendChild(content);
-        
-        // Add toggle functionality
-        setTimeout(() => {
-          const toggleBtn = document.getElementById(`toggle-details-${errorId}`);
-          const details = document.getElementById(`error-details-${errorId}`);
+        // Set content only if notification exists
+        if (notification) {
+          const errorId = event.error.message.substring(0, 50) + '...';
+          const content = document.createElement('div');
+          content.innerHTML = `
+            <strong>Warning:</strong> A non-critical error occurred.<br>
+            <span style="font-size: 12px">The application will continue to work, but some features may be limited.</span>
+            <div id="error-details-${errorId}" style="display: none; margin-top: 10px; font-size: 12px; color: #f8d7da;">
+              ${event.error.message}<br>
+              Location: ${event.filename.split('/').pop()} (line ${event.lineno})
+            </div>
+            <button id="toggle-details-${errorId}" style="background: none; border: none; color: #f8d7da; text-decoration: underline; padding: 0; margin-top: 5px; cursor: pointer; font-size: 12px;">Show details</button>
+          `;
           
-          if (toggleBtn && details) {
-            toggleBtn.addEventListener('click', function() {
-              const isHidden = details.style.display === 'none';
-              details.style.display = isHidden ? 'block' : 'none';
-              toggleBtn.textContent = isHidden ? 'Hide details' : 'Show details';
-            });
+          // Replace existing content
+          notification.innerHTML = '';
+          
+          // Only append if both elements exist
+          if (notification && closeBtn) {
+            notification.appendChild(closeBtn);
           }
-        }, 0);
-        
-        // Auto-hide after 15 seconds
-        setTimeout(() => {
-          if (document.body.contains(notification)) {
-            document.body.removeChild(notification);
+          if (notification && content) {
+            notification.appendChild(content);
           }
-        }, 15000);
+          
+          // Add toggle functionality
+          setTimeout(() => {
+            const toggleBtn = document.getElementById(`toggle-details-${errorId}`);
+            const details = document.getElementById(`error-details-${errorId}`);
+            
+            if (toggleBtn && details) {
+              toggleBtn.addEventListener('click', function() {
+                const isHidden = details.style.display === 'none';
+                details.style.display = isHidden ? 'block' : 'none';
+                toggleBtn.textContent = isHidden ? 'Hide details' : 'Show details';
+              });
+            }
+          }, 0);
+          
+          // Auto-hide after 15 seconds
+          setTimeout(() => {
+            if (document.body && notification && document.body.contains(notification)) {
+              document.body.removeChild(notification);
+            }
+          }, 15000);
+        }
       };
       
       // Ensure the DOM is ready before trying to add the notification
@@ -203,6 +251,26 @@
       
       return true;
     }
+  });
+  
+  // Fix the style issues in other scripts
+  document.addEventListener('DOMContentLoaded', function() {
+    // Attempt to fix any elements that use inline styles in dashboard.html
+    const fixStylesForElements = ['esg-score-circle', 'environment-score-bar', 'social-score-bar', 'governance-score-bar'];
+    
+    fixStylesForElements.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) {
+        // Clone the inline styles to ensure they're properly set 
+        const currentStyles = element.getAttribute('style');
+        if (currentStyles) {
+          element.removeAttribute('style');
+          setTimeout(() => {
+            element.setAttribute('style', currentStyles);
+          }, 0);
+        }
+      }
+    });
   });
   
   // Patch the ThingSpeak helper when it's available
@@ -231,41 +299,26 @@
       
       // Re-initialize the elements to use our patched method
       window.thingSpeakHelper.initializeElements();
-      
-      // Patch the showLoading method
-      const originalShowLoading = window.thingSpeakHelper.showLoading;
-      window.thingSpeakHelper.showLoading = function(text) {
-        try {
-          if (this.loadingElement && this.loadingTextElement) {
-            window.domSafe.setText(this.loadingTextElement, text);
-            window.domSafe.toggleClass(this.loadingElement, 'hidden', false);
-          } else {
-            // Fallback if elements not found
-            console.warn('Loading elements not properly initialized, using fallback');
-            const loadingElem = window.domSafe.getElement('loading-indicator');
-            const textElem = window.domSafe.getElement('loading-text');
-            
-            if (textElem) window.domSafe.setText(textElem, text);
-            if (loadingElem) window.domSafe.toggleClass(loadingElem, 'hidden', false);
-          }
-        } catch (error) {
-          console.error('Error in patched showLoading:', error);
-        }
-      };
-      
-      console.log('ThingSpeak Helper methods patched');
     }
   };
   
-  // Try to patch immediately
-  patchThingSpeakHelper();
+  // Run when DOM is ready
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    patchThingSpeakHelper();
+  } else {
+    document.addEventListener('DOMContentLoaded', patchThingSpeakHelper);
+  }
   
-  // If not ready yet, wait for it
-  document.addEventListener('DOMContentLoaded', function() {
-    // Wait a short time for scripts to initialize
-    setTimeout(patchThingSpeakHelper, 500);
-  });
+  // Periodically check for window.thingSpeakHelper
+  const helperCheckInterval = setInterval(() => {
+    if (window.thingSpeakHelper) {
+      patchThingSpeakHelper();
+      clearInterval(helperCheckInterval);
+    }
+  }, 100);
   
-  // Inform user that the error handler is active
-  console.log('ThingSpeak Error Handler installed successfully');
+  // Clear the interval after 10 seconds to avoid memory leaks
+  setTimeout(() => {
+    clearInterval(helperCheckInterval);
+  }, 10000);
 })(); 

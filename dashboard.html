@@ -187,7 +187,7 @@
                 </div>
                 <p id="environment-score" class="text-3xl font-bold text-center mb-2">--</p>
                 <div class="w-full bg-gray-700 rounded-full h-2.5">
-                    <div id="environment-score-bar" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                    <div id="environment-score-bar" class="bg-green-600 h-2.5 rounded-full width-zero"></div>
                 </div>
                 <p class="mt-2 text-center text-gray-400 text-sm">Environmental Score</p>
             </div>
@@ -202,7 +202,7 @@
                 </div>
                 <p id="social-score" class="text-3xl font-bold text-center mb-2">--</p>
                 <div class="w-full bg-gray-700 rounded-full h-2.5">
-                    <div id="social-score-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                    <div id="social-score-bar" class="bg-blue-600 h-2.5 rounded-full width-zero"></div>
                 </div>
                 <p class="mt-2 text-center text-gray-400 text-sm">Social Score</p>
             </div>
@@ -217,7 +217,7 @@
                 </div>
                 <p id="governance-score" class="text-3xl font-bold text-center mb-2">--</p>
                 <div class="w-full bg-gray-700 rounded-full h-2.5">
-                    <div id="governance-score-bar" class="bg-yellow-600 h-2.5 rounded-full" style="width: 0%"></div>
+                    <div id="governance-score-bar" class="bg-yellow-600 h-2.5 rounded-full width-zero"></div>
                 </div>
                 <p class="mt-2 text-center text-gray-400 text-sm">Governance Score</p>
             </div>
@@ -271,6 +271,11 @@
         #environment-score-bar, #social-score-bar, #governance-score-bar {
             transition: width 1s ease-in-out;
         }
+        
+        /* Zero width class instead of inline style */
+        .width-zero {
+            width: 0%;
+        }
     </style>
 
     <script>
@@ -298,16 +303,29 @@
                 esgScoreObserver.observe(esgScoreElement, { childList: true });
             }
             
+            // Safely update element width
+            function safeUpdateWidth(targetId, width) {
+                const element = document.getElementById(targetId);
+                if (element) {
+                    try {
+                        element.classList.remove('width-zero');
+                        // Use classList to add a dynamic width class
+                        if (typeof element.style !== 'undefined') {
+                            element.style.width = `${width}%`;
+                        }
+                    } catch (e) {
+                        console.warn(`Error updating width for ${targetId}:`, e);
+                    }
+                }
+            }
+            
             // Monitor environment score
             const envScoreObserver = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     if (mutation.type === 'childList') {
                         const scoreValue = parseInt(mutation.target.textContent);
                         if (!isNaN(scoreValue)) {
-                            const barElement = document.getElementById('environment-score-bar');
-                            if (barElement) {
-                                barElement.style.width = `${scoreValue}%`;
-                            }
+                            safeUpdateWidth('environment-score-bar', scoreValue);
                         }
                     }
                 });
@@ -324,10 +342,7 @@
                     if (mutation.type === 'childList') {
                         const scoreValue = parseInt(mutation.target.textContent);
                         if (!isNaN(scoreValue)) {
-                            const barElement = document.getElementById('social-score-bar');
-                            if (barElement) {
-                                barElement.style.width = `${scoreValue}%`;
-                            }
+                            safeUpdateWidth('social-score-bar', scoreValue);
                         }
                     }
                 });
@@ -344,10 +359,7 @@
                     if (mutation.type === 'childList') {
                         const scoreValue = parseInt(mutation.target.textContent);
                         if (!isNaN(scoreValue)) {
-                            const barElement = document.getElementById('governance-score-bar');
-                            if (barElement) {
-                                barElement.style.width = `${scoreValue}%`;
-                            }
+                            safeUpdateWidth('governance-score-bar', scoreValue);
                         }
                     }
                 });
