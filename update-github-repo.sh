@@ -136,6 +136,8 @@ if [[ $PUSH_CHANGES == "y" || $PUSH_CHANGES == "Y" ]]; then
     
     # Push to GitHub
     echo -e "${BLUE}Pushing to GitHub...${NC}"
+    git add current-plus-esg
+    git commit -m "Add robust error handling for ThingSpeak API and DOM interactions"
     git push -u origin $BRANCH_NAME
     
     if [ $? -eq 0 ]; then
