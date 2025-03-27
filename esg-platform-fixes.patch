@@ -1,0 +1,189 @@
+From e3099193794bc16b4b7bee3c43a55ed6b3dadf18 Mon Sep 17 00:00:00 2001
+From: Anson Chan <ansonchan@Ansons-MacBook-Pro-6.local>
+Date: Thu, 27 Mar 2025 04:21:56 +0800
+Subject: [PATCH] Fix bugs: Replace inline styles in index.html with CSS
+ classes and fix scrollbar compatibility issues
+
+---
+ css/styles.css | 62 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ index.html     | 36 ++++++++++++++---------------
+ 2 files changed, 80 insertions(+), 18 deletions(-)
+
+diff --git a/css/styles.css b/css/styles.css
+index 9abf06c..51f091c 100644
+--- a/css/styles.css
++++ b/css/styles.css
+@@ -298,4 +298,66 @@ input:checked + .toggle-slider {
+ 
+ input:checked + .toggle-slider:before {
+   transform: translateX(20px);
++}
++
++/* Progress bar width classes */
++.progress-width-30 {
++  width: 30%;
++}
++.progress-width-45 {
++  width: 45%;
++}
++.progress-width-60 {
++  width: 60%;
++}
++.progress-width-65 {
++  width: 65%;
++}
++.progress-width-70 {
++  width: 70%;
++}
++.progress-width-78 {
++  width: 78%;
++}
++.progress-width-80 {
++  width: 80%;
++}
++.progress-width-85 {
++  width: 85%;
++}
++.progress-width-87 {
++  width: 87%;
++}
++.progress-width-89 {
++  width: 89%;
++}
++.progress-width-92 {
++  width: 92%;
++}
++.progress-width-93 {
++  width: 93%;
++}
++
++/* Scrollbar styles with vendor prefixes for better compatibility */
++::-webkit-scrollbar {
++  width: 10px;
++}
++
++::-webkit-scrollbar-track {
++  background: #1e293b;
++}
++
++::-webkit-scrollbar-thumb {
++  background: #334155;
++  border-radius: 5px;
++}
++
++::-webkit-scrollbar-thumb:hover {
++  background: #475569;
++}
++
++/* Firefox */
++* {
++  scrollbar-width: thin;
++  scrollbar-color: #334155 #1e293b;
+ } 
+\ No newline at end of file
+diff --git a/index.html b/index.html
+index a2cd13f..1eb89b3 100644
+--- a/index.html
++++ b/index.html
+@@ -392,8 +392,8 @@
+                     <span class="text-xs text-gray-400">Carbon Emissions</span>
+                     <span class="text-xs text-gray-400" id="envScore1">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-green-500 h-1.5 rounded-full" id="envProgress1" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-65"></div>
+                   </div>
+                 </div>
+                 <div class="mb-2">
+@@ -401,8 +401,8 @@
+                     <span class="text-xs text-gray-400">Energy Efficiency</span>
+                     <span class="text-xs text-gray-400" id="envScore2">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-green-500 h-1.5 rounded-full" id="envProgress2" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-80"></div>
+                   </div>
+                 </div>
+                 <div class="mb-2">
+@@ -410,8 +410,8 @@
+                     <span class="text-xs text-gray-400">Renewable Usage</span>
+                     <span class="text-xs text-gray-400" id="envScore3">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-green-500 h-1.5 rounded-full" id="envProgress3" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-45"></div>
+                   </div>
+                 </div>
+               </div>
+@@ -431,8 +431,8 @@
+                     <span class="text-xs text-gray-400">Community Impact</span>
+                     <span class="text-xs text-gray-400" id="socialScore1">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-blue-500 h-1.5 rounded-full" id="socialProgress1" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-green-500 h-1.5 rounded-full progress-width-70"></div>
+                   </div>
+                 </div>
+                 <div class="mb-2">
+@@ -440,8 +440,8 @@
+                     <span class="text-xs text-gray-400">Stakeholder Engagement</span>
+                     <span class="text-xs text-gray-400" id="socialScore2">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-blue-500 h-1.5 rounded-full" id="socialProgress2" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-green-500 h-1.5 rounded-full progress-width-60"></div>
+                   </div>
+                 </div>
+                 <div class="mb-2">
+@@ -449,8 +449,8 @@
+                     <span class="text-xs text-gray-400">Labor Practices</span>
+                     <span class="text-xs text-gray-400" id="socialScore3">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-blue-500 h-1.5 rounded-full" id="socialProgress3" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-green-500 h-1.5 rounded-full progress-width-30"></div>
+                   </div>
+                 </div>
+               </div>
+@@ -470,8 +470,8 @@
+                     <span class="text-xs text-gray-400">Board Diversity</span>
+                     <span class="text-xs text-gray-400" id="govScore1">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-purple-500 h-1.5 rounded-full" id="govProgress1" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-65"></div>
+                   </div>
+                 </div>
+                 <div class="mb-2">
+@@ -479,8 +479,8 @@
+                     <span class="text-xs text-gray-400">Ethics & Compliance</span>
+                     <span class="text-xs text-gray-400" id="govScore2">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-purple-500 h-1.5 rounded-full" id="govProgress2" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-80"></div>
+                   </div>
+                 </div>
+                 <div class="mb-2">
+@@ -488,8 +488,8 @@
+                     <span class="text-xs text-gray-400">Transparency</span>
+                     <span class="text-xs text-gray-400" id="govScore3">--</span>
+                   </div>
+-                  <div class="w-full bg-gray-700 rounded-full h-1.5">
+-                    <div class="bg-purple-500 h-1.5 rounded-full" id="govProgress3" style="width: 0%"></div>
++                  <div class="bg-dark-600 h-1.5 rounded-full w-full">
++                    <div class="bg-primary-500 h-1.5 rounded-full progress-width-45"></div>
+                   </div>
+                 </div>
+               </div>
+-- 
+2.46.0
+
