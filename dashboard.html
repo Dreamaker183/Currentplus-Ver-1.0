@@ -322,94 +322,131 @@
     <script>
         // Script to update score visualizations when values change
         document.addEventListener('DOMContentLoaded', function() {
-            // Monitor for changes to the score elements
-            const esgScoreObserver = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList') {
-                        const scoreValue = parseInt(mutation.target.textContent);
-                        if (!isNaN(scoreValue)) {
-                            // Update the circle visualization
-                            const circleElement = document.getElementById('esg-score-circle');
-                            if (circleElement) {
-                                circleElement.setAttribute('stroke-dasharray', `${scoreValue}, 100`);
-                            }
-                        }
-                    }
-                });
-            });
-            
-            // Start observing the ESG score element
-            const esgScoreElement = document.getElementById('esg-score');
-            if (esgScoreElement) {
-                esgScoreObserver.observe(esgScoreElement, { childList: true });
-            }
-            
-            // Safely update element width
+            console.log("Dashboard inline script: DOMContentLoaded");
+
+            // Safely update element width and handle potential errors
             function safeUpdateWidth(targetId, width) {
                 const element = document.getElementById(targetId);
+                console.log(`safeUpdateWidth: Attempting to find element with ID [${targetId}]. Found:`, element ? 'Yes' : 'No'); // Log finding attempt
+
                 if (element) {
                     try {
-                        element.classList.remove('width-zero');
-                        // Use classList to add a dynamic width class
-                        if (typeof element.style !== 'undefined') {
+                        // Explicitly check if .style property exists AND is an object
+                        if (element.style && typeof element.style === 'object') {
+                            console.log(`safeUpdateWidth: Updating width for [${targetId}] to ${width}%`);
+                            element.classList.remove('width-zero'); // Ensure animation starts from 0 if re-applied
                             element.style.width = `${width}%`;
+                        } else {
+                            // This case is unusual but handles the specific error reported
+                            console.warn(`safeUpdateWidth: Element [${targetId}] found, but its '.style' property is missing or not an object. Cannot set width.`);
                         }
                     } catch (e) {
-                        console.warn(`Error updating width for ${targetId}:`, e);
+                        // Catch any other unexpected errors during style manipulation
+                        console.error(`safeUpdateWidth: Error setting width for [${targetId}]:`, e);
                     }
+                } else {
+                    // Log clearly if the element itself was not found
+                    console.warn(`safeUpdateWidth: Element with ID [${targetId}] not found in the DOM.`);
                 }
             }
-            
-            // Monitor environment score
-            const envScoreObserver = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList') {
-                        const scoreValue = parseInt(mutation.target.textContent);
-                        if (!isNaN(scoreValue)) {
-                            safeUpdateWidth('environment-score-bar', scoreValue);
-                        }
-                    }
+
+            // Function to setup observer for a score element
+            function setupScoreObserver(scoreElementId, barElementId) {
+                const scoreElement = document.getElementById(scoreElementId);
+                const barElement = document.getElementById(barElementId); // Pre-check if bar exists
+
+                if (!scoreElement) {
+                    console.error(`Observer Setup Error: Score element #${scoreElementId} not found.`);
+                    return;
+                }
+                 if (!barElement) {
+                    console.warn(`Observer Setup Warning: Bar element #${barElementId} not found. Cannot update width visually.`);
+                    // Continue observing the score text, but width update will fail later (and be logged by safeUpdateWidth)
+                }
+
+                console.log(`Setting up observer for score element: #${scoreElementId}`);
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                         // Check both childList (if structure changes) and characterData (if text directly changes)
+                         if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                            console.log(`Mutation detected on #${scoreElementId}, Type: ${mutation.type}`);
+                            // Use nodeValue for characterData, textContent otherwise. Fallback to empty string.
+                             const scoreText = mutation.target.nodeValue || mutation.target.textContent || '';
+                             console.log(`  Raw text content: "${scoreText}"`);
+
+                             // Attempt to parse the score value
+                             const scoreValue = parseInt(scoreText, 10); // Always provide radix
+
+                             if (!isNaN(scoreValue)) {
+                                 console.log(`  Parsed score: ${scoreValue}. Calling safeUpdateWidth for #${barElementId}.`);
+                                 // Call the safe update function for the corresponding bar
+                                 safeUpdateWidth(barElementId, scoreValue);
+                             } else {
+                                 console.warn(`  Parsed score for #${scoreElementId} is NaN. Raw text was: "${scoreText}". Resetting bar?`);
+                                 // Optionally reset the bar to 0% if the text becomes non-numeric
+                                 safeUpdateWidth(barElementId, 0);
+                             }
+                         }
+                    });
                 });
-            });
-            
-            const envScoreElement = document.getElementById('environment-score');
-            if (envScoreElement) {
-                envScoreObserver.observe(envScoreElement, { childList: true });
-            }
-            
-            // Monitor social score
-            const socialScoreObserver = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList') {
-                        const scoreValue = parseInt(mutation.target.textContent);
-                        if (!isNaN(scoreValue)) {
-                            safeUpdateWidth('social-score-bar', scoreValue);
-                        }
-                    }
+
+                // Observe the score element for changes in its direct text content or children
+                observer.observe(scoreElement, {
+                    childList: true,      // For changes in children (e.g., if text is wrapped in a span)
+                    characterData: true,  // For changes directly to text nodes
+                    subtree: true         // Include descendants
                 });
-            });
-            
-            const socialScoreElement = document.getElementById('social-score');
-            if (socialScoreElement) {
-                socialScoreObserver.observe(socialScoreElement, { childList: true });
+                 console.log(`Observer attached to #${scoreElementId}`);
             }
-            
-            // Monitor governance score
-            const govScoreObserver = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    if (mutation.type === 'childList') {
-                        const scoreValue = parseInt(mutation.target.textContent);
-                        if (!isNaN(scoreValue)) {
-                            safeUpdateWidth('governance-score-bar', scoreValue);
-                        }
-                    }
-                });
-            });
-            
-            const govScoreElement = document.getElementById('governance-score');
-            if (govScoreElement) {
-                govScoreObserver.observe(govScoreElement, { childList: true });
+
+            // Setup observers for all scores
+            setupScoreObserver('esg-score', 'esg-score-circle'); // Note: Circle uses stroke-dasharray, handled separately below
+            setupScoreObserver('environment-score', 'environment-score-bar');
+            setupScoreObserver('social-score', 'social-score-bar');
+            setupScoreObserver('governance-score', 'governance-score-bar');
+
+            // --- Special handling for the ESG Score Circle ---
+            const esgScoreElement = document.getElementById('esg-score');
+            const esgCircleElement = document.getElementById('esg-score-circle');
+
+            if (esgScoreElement && esgCircleElement) {
+                 console.log("Setting up observer for ESG score circle");
+                 const esgCircleObserver = new MutationObserver(function(mutations) {
+                     mutations.forEach(function(mutation) {
+                         if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                            console.log("Mutation detected on #esg-score for circle update");
+                             const scoreText = mutation.target.nodeValue || mutation.target.textContent || '';
+                             const scoreValue = parseInt(scoreText, 10);
+                             console.log(`  Raw text: "${scoreText}", Parsed value: ${scoreValue}`);
+
+                             if (!isNaN(scoreValue)) {
+                                 // Clamp score between 0 and 100 for the circle
+                                 const clampedScore = Math.max(0, Math.min(100, scoreValue));
+                                 console.log(`  Updating circle stroke-dasharray to: ${clampedScore}, 100`);
+                                 try {
+                                     esgCircleElement.setAttribute('stroke-dasharray', `${clampedScore}, 100`);
+                                 } catch(e) {
+                                     console.error("Error setting stroke-dasharray for esg-score-circle:", e);
+                                 }
+                             } else {
+                                console.warn("  Parsed ESG score is NaN. Setting circle to 0.");
+                                 try {
+                                      esgCircleElement.setAttribute('stroke-dasharray', `0, 100`);
+                                 } catch(e) {
+                                     console.error("Error resetting stroke-dasharray for esg-score-circle:", e);
+                                 }
+                             }
+                         }
+                     });
+                 });
+                 esgCircleObserver.observe(esgScoreElement, { childList: true, characterData: true, subtree: true });
+                 console.log("Observer attached to #esg-score for circle update");
+            } else {
+                if (!esgScoreElement) console.error("Observer Setup Error: #esg-score element not found for circle.");
+                if (!esgCircleElement) console.error("Observer Setup Error: #esg-score-circle element not found.");
             }
+
+             console.log("Dashboard inline script: Setup complete.");
         });
     </script>
 </body>
