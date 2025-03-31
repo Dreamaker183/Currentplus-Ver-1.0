@@ -67,40 +67,57 @@ const Dashboard = {
    */
   loadDOMElements: function() {
     try {
+      // Track missing elements
+      const missingElements = [];
+      
+      // Helper function to safely get elements and track missing ones
+      const getElement = (id) => {
+        const element = document.getElementById(id);
+        if (!element) {
+          missingElements.push(id);
+        }
+        return element;
+      };
+      
       // Status elements
-      this.elements.lastUpdated = document.getElementById('last-updated');
-      this.elements.connectionStatus = document.getElementById('connection-status');
-      this.elements.channelName = document.getElementById('channel-name');
+      this.elements.lastUpdated = getElement('last-updated');
+      this.elements.connectionStatus = getElement('connection-status');
+      this.elements.channelName = getElement('channel-name');
       
       // Chart containers
-      this.elements.energyChart = document.getElementById('energy-chart');
-      this.elements.carbonChart = document.getElementById('carbon-chart');
+      this.elements.energyChart = getElement('energy-chart');
+      this.elements.carbonChart = getElement('carbon-chart');
       
       // Metric cards
-      this.elements.currentEnergyValue = document.getElementById('current-energy-value');
-      this.elements.currentCarbonValue = document.getElementById('current-carbon-value');
+      this.elements.currentEnergyValue = getElement('current-energy-value');
+      this.elements.currentCarbonValue = getElement('current-carbon-value');
       
       // ESG Score elements
-      this.elements.esgScore = document.getElementById('esg-score');
-      this.elements.environmentScore = document.getElementById('environment-score');
-      this.elements.socialScore = document.getElementById('social-score');
-      this.elements.governanceScore = document.getElementById('governance-score');
+      this.elements.esgScore = getElement('esg-score');
+      this.elements.environmentScore = getElement('environment-score');
+      this.elements.socialScore = getElement('social-score');
+      this.elements.governanceScore = getElement('governance-score');
       
       // Loading indicator
-      this.elements.loadingIndicator = document.getElementById('loading-indicator');
-      this.elements.loadingText = document.getElementById('loading-text');
+      this.elements.loadingIndicator = getElement('loading-indicator');
+      this.elements.loadingText = getElement('loading-text');
       
       // Error notification
-      this.elements.errorNotification = document.getElementById('error-notification');
-      this.elements.errorText = document.getElementById('error-text');
+      this.elements.errorNotification = getElement('error-notification');
+      this.elements.errorText = getElement('error-text');
       
       // Historical data elements
-      this.elements.historicalPanel = document.getElementById('historical-data-panel');
-      this.elements.historyStartDate = document.getElementById('history-start-date');
-      this.elements.historyEndDate = document.getElementById('history-end-date');
-      this.elements.showHistoryBtn = document.getElementById('show-history');
-      this.elements.fetchHistoryBtn = document.getElementById('fetch-history');
-      this.elements.cancelHistoryBtn = document.getElementById('cancel-history');
+      this.elements.historicalPanel = getElement('historical-data-panel');
+      this.elements.historyStartDate = getElement('history-start-date');
+      this.elements.historyEndDate = getElement('history-end-date');
+      this.elements.showHistoryBtn = getElement('show-history');
+      this.elements.fetchHistoryBtn = getElement('fetch-history');
+      this.elements.cancelHistoryBtn = getElement('cancel-history');
+      
+      // Log missing elements for debugging
+      if (missingElements.length > 0) {
+        console.warn('Missing DOM elements:', missingElements.join(', '));
+      }
     } catch (error) {
       console.error('Error loading DOM elements:', error);
     }
@@ -482,34 +499,64 @@ const Dashboard = {
    * Initialize dashboard charts
    */
   initCharts: function() {
-    // Destroy existing charts if they exist
-    if (this.state.chartInstances.energyChart) {
-      this.state.chartInstances.energyChart.destroy();
-    }
-    
-    if (this.state.chartInstances.carbonChart) {
-      this.state.chartInstances.carbonChart.destroy();
-    }
-    
-    // Create new charts if containers exist
-    if (this.elements.energyChart) {
-      this.state.chartInstances.energyChart = this.createTimeSeriesChart(
-        this.elements.energyChart,
-        'Energy Consumption',
-        [],
-        this.config.chartColors.energy,
-        'kWh'
-      );
-    }
-    
-    if (this.elements.carbonChart) {
-      this.state.chartInstances.carbonChart = this.createTimeSeriesChart(
-        this.elements.carbonChart,
-        'Carbon Emissions',
-        [],
-        this.config.chartColors.carbon,
-        'kg CO₂'
-      );
+    try {
+      // Check if Chart object is available
+      if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded. Charts cannot be initialized.');
+        return;
+      }
+      
+      // Destroy existing charts if they exist
+      if (this.state.chartInstances.energyChart) {
+        try {
+          this.state.chartInstances.energyChart.destroy();
+        } catch (error) {
+          console.warn('Error destroying energy chart:', error);
+        }
+      }
+      
+      if (this.state.chartInstances.carbonChart) {
+        try {
+          this.state.chartInstances.carbonChart.destroy();
+        } catch (error) {
+          console.warn('Error destroying carbon chart:', error);
+        }
+      }
+      
+      // Create new charts if containers exist
+      if (this.elements.energyChart) {
+        try {
+          this.state.chartInstances.energyChart = this.createTimeSeriesChart(
+            this.elements.energyChart,
+            'Energy Consumption',
+            [],
+            this.config.chartColors.energy,
+            'kWh'
+          );
+        } catch (error) {
+          console.error('Failed to create energy chart:', error);
+        }
+      } else {
+        console.warn('Energy chart container not found in DOM');
+      }
+      
+      if (this.elements.carbonChart) {
+        try {
+          this.state.chartInstances.carbonChart = this.createTimeSeriesChart(
+            this.elements.carbonChart,
+            'Carbon Emissions',
+            [],
+            this.config.chartColors.carbon,
+            'kg CO₂'
+          );
+        } catch (error) {
+          console.error('Failed to create carbon chart:', error);
+        }
+      } else {
+        console.warn('Carbon chart container not found in DOM');
+      }
+    } catch (error) {
+      console.error('Error initializing charts:', error);
     }
   },
   
@@ -579,23 +626,50 @@ const Dashboard = {
    * Update charts with current data
    */
   updateCharts: function() {
-    if (!this.state.data.energy.length) {
-      return;
-    }
-    
-    // Filter data based on selected timeframe
-    const filteredData = this.filterDataByTimeframe();
-    
-    // Update energy chart
-    if (this.state.chartInstances.energyChart) {
-      this.state.chartInstances.energyChart.data.datasets[0].data = filteredData.energy;
-      this.state.chartInstances.energyChart.update();
-    }
-    
-    // Update carbon chart
-    if (this.state.chartInstances.carbonChart) {
-      this.state.chartInstances.carbonChart.data.datasets[0].data = filteredData.carbon;
-      this.state.chartInstances.carbonChart.update();
+    try {
+      if (!this.state.data.energy.length) {
+        console.log('No energy data available to update charts');
+        return;
+      }
+      
+      // Filter data based on selected timeframe
+      const filteredData = this.filterDataByTimeframe();
+      
+      // Update energy chart
+      if (this.state.chartInstances.energyChart) {
+        try {
+          if (this.state.chartInstances.energyChart.data && 
+              this.state.chartInstances.energyChart.data.datasets && 
+              this.state.chartInstances.energyChart.data.datasets.length > 0) {
+            
+            this.state.chartInstances.energyChart.data.datasets[0].data = filteredData.energy;
+            this.state.chartInstances.energyChart.update('none'); // Use 'none' mode for better performance
+          } else {
+            console.warn('Energy chart datasets not properly initialized');
+          }
+        } catch (error) {
+          console.error('Error updating energy chart:', error);
+        }
+      }
+      
+      // Update carbon chart
+      if (this.state.chartInstances.carbonChart) {
+        try {
+          if (this.state.chartInstances.carbonChart.data && 
+              this.state.chartInstances.carbonChart.data.datasets && 
+              this.state.chartInstances.carbonChart.data.datasets.length > 0) {
+            
+            this.state.chartInstances.carbonChart.data.datasets[0].data = filteredData.carbon;
+            this.state.chartInstances.carbonChart.update('none'); // Use 'none' mode for better performance
+          } else {
+            console.warn('Carbon chart datasets not properly initialized');
+          }
+        } catch (error) {
+          console.error('Error updating carbon chart:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error in updateCharts:', error);
     }
   },
   
@@ -673,10 +747,12 @@ const Dashboard = {
         timeUnit = 'day';
     }
     
-    // Update chart time units
-    Object.values(this.state.chartInstances).forEach(chart => {
-      if (chart && chart.options && chart.options.scales && chart.options.scales.x) {
+    // Update chart time units with null checks
+    Object.entries(this.state.chartInstances).forEach(([chartName, chart]) => {
+      if (chart && chart.options && chart.options.scales && chart.options.scales.x && chart.options.scales.x.time) {
         chart.options.scales.x.time.unit = timeUnit;
+      } else {
+        console.warn(`Cannot update time unit for ${chartName}: chart or required properties are not available`);
       }
     });
     
@@ -795,6 +871,8 @@ const Dashboard = {
     if (this.elements.loadingIndicator && this.elements.loadingText) {
       this.elements.loadingText.textContent = message;
       this.elements.loadingIndicator.classList.remove('hidden');
+    } else {
+      console.warn('Loading indicator elements not found in the DOM');
     }
   },
   
@@ -804,6 +882,8 @@ const Dashboard = {
   hideLoading: function() {
     if (this.elements.loadingIndicator) {
       this.elements.loadingIndicator.classList.add('hidden');
+    } else {
+      console.warn('Loading indicator element not found in the DOM');
     }
   },
   
@@ -822,6 +902,8 @@ const Dashboard = {
       setTimeout(() => {
         this.hideError();
       }, 10000);
+    } else {
+      console.warn('Error notification elements not found in the DOM, cannot show error:', message);
     }
   },
   
@@ -831,6 +913,8 @@ const Dashboard = {
   hideError: function() {
     if (this.elements.errorNotification) {
       this.elements.errorNotification.classList.add('hidden');
+    } else {
+      console.warn('Error notification element not found in the DOM');
     }
   },
   
@@ -886,6 +970,8 @@ const Dashboard = {
       } else {
         this.elements.historicalPanel.classList.add('hidden');
       }
+    } else {
+      console.warn('Historical panel element not found in the DOM');
     }
   },
   
