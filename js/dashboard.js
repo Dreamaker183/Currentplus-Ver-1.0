@@ -633,30 +633,38 @@ const Dashboard = {
    * @returns {Chart|null} - Chart.js chart instance or null if creation fails
    */
   createTimeSeriesChart: function(container, label, data, colors, unit) {
+    if (!container) {
+      console.error(`Chart container for ${label} is null or undefined`);
+      return null;
+    }
+    
     try {
-      if (!container) {
-        console.error(`Chart container for ${label} is null or undefined`);
-        return null;
-      }
-      
-      // Check if Chart.js is available
+      // Ensure Chart.js is available before attempting to create chart
       if (typeof Chart === 'undefined') {
-        console.error('Chart.js is not loaded. Cannot create chart.');
+        console.error('Chart.js is not available. Chart creation aborted.');
         return null;
       }
       
-      const ctx = container.getContext('2d');
-      if (!ctx) {
-        console.error(`Could not get 2d context for ${label} chart`);
+      // Safely get the 2D context
+      let ctx;
+      try {
+        ctx = container.getContext('2d');
+        if (!ctx) {
+          console.error(`Failed to get 2D context from container for ${label}`);
+          return null;
+        }
+      } catch (ctxError) {
+        console.error(`Error getting context for ${label} chart:`, ctxError);
         return null;
       }
       
+      // Create and return chart instance with error handling
       return new Chart(ctx, {
         type: 'line',
         data: {
           datasets: [{
             label: label,
-            data: data,
+            data: data || [], // Ensure data is never undefined
             borderColor: colors.primary,
             backgroundColor: colors.secondary,
             fill: true,
@@ -709,46 +717,67 @@ const Dashboard = {
    * Update charts with current data
    */
   updateCharts: function() {
+    // Check if we have data to update
+    if (!this.state.data.energy || this.state.data.energy.length === 0) {
+      console.warn('No energy data available to update charts');
+      return;
+    }
+    
     try {
-      if (!this.state.data.energy.length) {
-        console.log('No energy data available to update charts');
-        return;
-      }
-      
       // Filter data based on selected timeframe
       const filteredData = this.filterDataByTimeframe();
       
-      // Update energy chart
+      // Safely update energy chart
       if (this.state.chartInstances.energyChart) {
         try {
-          if (this.state.chartInstances.energyChart.data && 
-              this.state.chartInstances.energyChart.data.datasets && 
-              this.state.chartInstances.energyChart.data.datasets.length > 0) {
+          const chart = this.state.chartInstances.energyChart;
+          
+          // Ensure the chart has the required properties before updating
+          if (chart.data && 
+              chart.data.datasets && 
+              Array.isArray(chart.data.datasets) && 
+              chart.data.datasets.length > 0) {
             
-            this.state.chartInstances.energyChart.data.datasets[0].data = filteredData.energy;
-            this.state.chartInstances.energyChart.update('none'); // Use 'none' mode for better performance
+            chart.data.datasets[0].data = filteredData.energy || [];
+            
+            // Use safe update mode
+            if (typeof chart.update === 'function') {
+              chart.update('none'); // 'none' mode for better performance
+            } else {
+              console.warn('Energy chart update method not available');
+            }
           } else {
-            console.warn('Energy chart datasets not properly initialized');
+            console.warn('Energy chart structure is not as expected');
           }
-        } catch (error) {
-          console.error('Error updating energy chart:', error);
+        } catch (energyError) {
+          console.error('Error updating energy chart:', energyError);
         }
       }
       
-      // Update carbon chart
+      // Safely update carbon chart
       if (this.state.chartInstances.carbonChart) {
         try {
-          if (this.state.chartInstances.carbonChart.data && 
-              this.state.chartInstances.carbonChart.data.datasets && 
-              this.state.chartInstances.carbonChart.data.datasets.length > 0) {
+          const chart = this.state.chartInstances.carbonChart;
+          
+          // Ensure the chart has the required properties before updating
+          if (chart.data && 
+              chart.data.datasets && 
+              Array.isArray(chart.data.datasets) && 
+              chart.data.datasets.length > 0) {
             
-            this.state.chartInstances.carbonChart.data.datasets[0].data = filteredData.carbon;
-            this.state.chartInstances.carbonChart.update('none'); // Use 'none' mode for better performance
+            chart.data.datasets[0].data = filteredData.carbon || [];
+            
+            // Use safe update mode
+            if (typeof chart.update === 'function') {
+              chart.update('none'); // 'none' mode for better performance
+            } else {
+              console.warn('Carbon chart update method not available');
+            }
           } else {
-            console.warn('Carbon chart datasets not properly initialized');
+            console.warn('Carbon chart structure is not as expected');
           }
-        } catch (error) {
-          console.error('Error updating carbon chart:', error);
+        } catch (carbonError) {
+          console.error('Error updating carbon chart:', carbonError);
         }
       }
     } catch (error) {
@@ -796,51 +825,55 @@ const Dashboard = {
    * @param {string} timeframe - New timeframe (day, week, month, year)
    */
   changeTimeframe: function(timeframe) {
-    // Update active button UI
-    const buttons = document.querySelectorAll('.timeframe-btn');
-    buttons.forEach(btn => {
-      if (btn.dataset.timeframe === timeframe) {
-        btn.classList.add('bg-blue-600');
-        btn.classList.remove('bg-gray-700');
-      } else {
-        btn.classList.remove('bg-blue-600');
-        btn.classList.add('bg-gray-700');
+    try {
+      // Update active button UI safely
+      const buttons = document.querySelectorAll('.timeframe-btn');
+      if (buttons && buttons.length) {
+        buttons.forEach(btn => {
+          if (btn) {
+            if (btn.dataset.timeframe === timeframe) {
+              btn.classList.add('bg-blue-600');
+              btn.classList.remove('bg-gray-700');
+            } else {
+              btn.classList.remove('bg-blue-600');
+              btn.classList.add('bg-gray-700');
+            }
+          }
+        });
       }
-    });
-    
-    // Update timeframe state
-    this.state.timeframe = timeframe;
-    
-    // Update chart scales
-    let timeUnit;
-    switch (timeframe) {
-      case 'day':
-        timeUnit = 'hour';
-        break;
-      case 'week':
-        timeUnit = 'day';
-        break;
-      case 'month':
-        timeUnit = 'day';
-        break;
-      case 'year':
-        timeUnit = 'month';
-        break;
-      default:
-        timeUnit = 'day';
+      
+      // Update timeframe state
+      this.state.timeframe = timeframe;
+      
+      // Map timeframe to chart time unit
+      let timeUnit = 'day'; // Default
+      switch (timeframe) {
+        case 'day': timeUnit = 'hour'; break;
+        case 'week': timeUnit = 'day'; break;
+        case 'month': timeUnit = 'day'; break;
+        case 'year': timeUnit = 'month'; break;
+      }
+      
+      // Update chart time units if possible
+      Object.entries(this.state.chartInstances).forEach(([chartName, chart]) => {
+        try {
+          if (chart && 
+              chart.options && 
+              chart.options.scales && 
+              chart.options.scales.x && 
+              chart.options.scales.x.time) {
+            chart.options.scales.x.time.unit = timeUnit;
+          }
+        } catch (error) {
+          console.warn(`Failed to update time unit for ${chartName}:`, error.message);
+        }
+      });
+      
+      // Update charts with filtered data
+      this.updateCharts();
+    } catch (error) {
+      console.error('Error changing timeframe:', error);
     }
-    
-    // Update chart time units with null checks
-    Object.entries(this.state.chartInstances).forEach(([chartName, chart]) => {
-      if (chart && chart.options && chart.options.scales && chart.options.scales.x && chart.options.scales.x.time) {
-        chart.options.scales.x.time.unit = timeUnit;
-      } else {
-        console.warn(`Cannot update time unit for ${chartName}: chart or required properties are not available`);
-      }
-    });
-    
-    // Update charts with filtered data
-    this.updateCharts();
   },
   
   /**
@@ -864,79 +897,101 @@ const Dashboard = {
   },
   
   /**
-   * Update ESG scores
+   * Update ESG scores based on ThingSpeak data
+   * @param {Array} feeds - ThingSpeak data feeds
    */
   updateESGScores: function(feeds) {
-    console.log("[updateESGScores] Updating scores...");
+    console.log("[updateESGScores] Starting update...");
     
-    // Default to placeholder values if we can't calculate scores
+    // Initialize with safe default values
     let overallScore = '--';
     let envScore = '--';
     let socialScore = '--';
     let govScore = '--';
     
     try {
-      if (feeds && feeds.length > 0) {
-        // Calculate environmental score based on energy usage
-        // This is a simplified example - adjust calculations based on your business logic
-        envScore = this.calculateEnvironmentalScore(feeds);
-        
-        // Placeholder Social & Governance scores (replace with actual logic)
-        socialScore = 70; // Example fixed value
-        govScore = 65;    // Example fixed value
-        
-        // Calculate overall ESG score (weighted average)
-        overallScore = Math.round((envScore * 0.5) + (socialScore * 0.25) + (govScore * 0.25));
-        
-        console.log(`[updateESGScores] Calculated scores: E=${envScore}, S=${socialScore}, G=${govScore}, Overall=${overallScore}`);
+      // First check if we have any valid data to calculate scores
+      if (feeds && Array.isArray(feeds) && feeds.length > 0) {
+        try {
+          // Calculate environmental score based on energy usage
+          envScore = this.calculateEnvironmentalScore(feeds);
+          console.log(`[updateESGScores] Calculated environmental score: ${envScore}`);
+          
+          // Placeholder scores for social and governance
+          socialScore = 70; // Example placeholder
+          govScore = 65;    // Example placeholder
+          
+          // Calculate overall ESG score (weighted average)
+          // Only convert to numbers for calculation if the scores are numeric
+          const envNum = typeof envScore === 'number' ? envScore : 0;
+          const socialNum = typeof socialScore === 'number' ? socialScore : 0;
+          const govNum = typeof govScore === 'number' ? govScore : 0;
+          
+          overallScore = Math.round((envNum * 0.5) + (socialNum * 0.25) + (govNum * 0.25));
+          console.log(`[updateESGScores] Calculated overall score: ${overallScore}`);
+        } catch (calcError) {
+          console.error("[updateESGScores] Error calculating scores:", calcError);
+          // Keep default values on calculation error
+        }
       } else {
-        console.warn("[updateESGScores] No data feeds available to calculate scores");
+        console.warn("[updateESGScores] No valid feeds data provided, using default scores");
       }
       
-      // Ensure scores are valid strings (never undefined, null, or empty)
-      overallScore = overallScore?.toString() || '--';
-      envScore = envScore?.toString() || '--';
-      socialScore = socialScore?.toString() || '--';
-      govScore = govScore?.toString() || '--';
+      // Convert all scores to strings to avoid potential type issues
+      const safeOverall = overallScore?.toString() || '--';
+      const safeEnv = envScore?.toString() || '--';
+      const safeSocial = socialScore?.toString() || '--';
+      const safeGov = govScore?.toString() || '--';
       
-      // Update UI with scores - safely set text content
-      if (this.elements.esgScore) {
-        this.elements.esgScore.textContent = overallScore;
-      } else {
-        console.error("[updateESGScores] esgScore element not found in DOM");
-      }
+      console.log(`[updateESGScores] Final scores to display: Overall=${safeOverall}, E=${safeEnv}, S=${safeSocial}, G=${safeGov}`);
       
-      if (this.elements.environmentScore) {
-        this.elements.environmentScore.textContent = envScore;
-      } else {
-        console.error("[updateESGScores] environmentScore element not found in DOM");
-      }
+      // Update DOM elements with scores - add multiple layers of safety
+      this.updateScoreElement('esgScore', safeOverall);
+      this.updateScoreElement('environmentScore', safeEnv);
+      this.updateScoreElement('socialScore', safeSocial);
+      this.updateScoreElement('governanceScore', safeGov);
       
-      if (this.elements.socialScore) {
-        this.elements.socialScore.textContent = socialScore;
-      } else {
-        console.error("[updateESGScores] socialScore element not found in DOM");
-      }
-      
-      if (this.elements.governanceScore) {
-        this.elements.governanceScore.textContent = govScore;
-      } else {
-        console.error("[updateESGScores] governanceScore element not found in DOM");
-      }
-      
-      console.log("[updateESGScores] Score element updates complete");
+      console.log("[updateESGScores] Finished updating scores");
     } catch (error) {
-      console.error("[updateESGScores] Error calculating or updating scores:", error);
+      console.error("[updateESGScores] Unexpected error:", error);
       
-      // Try to update UI with default values even if calculation failed
+      // Fall back to safe defaults on any error
       try {
-        if (this.elements.esgScore) this.elements.esgScore.textContent = '--';
-        if (this.elements.environmentScore) this.elements.environmentScore.textContent = '--';
-        if (this.elements.socialScore) this.elements.socialScore.textContent = '--';
-        if (this.elements.governanceScore) this.elements.governanceScore.textContent = '--';
-      } catch (e) {
-        console.error("[updateESGScores] Failed to set default values:", e);
+        this.updateScoreElement('esgScore', '--');
+        this.updateScoreElement('environmentScore', '--');
+        this.updateScoreElement('socialScore', '--');
+        this.updateScoreElement('governanceScore', '--');
+      } catch (fallbackError) {
+        console.error("[updateESGScores] Error setting fallback values:", fallbackError);
       }
+    }
+  },
+  
+  /**
+   * Helper method to safely update a score element
+   * @param {string} elementKey - Key in this.elements object
+   * @param {string} value - Value to set
+   */
+  updateScoreElement: function(elementKey, value) {
+    try {
+      const element = this.elements[elementKey];
+      
+      if (!element) {
+        console.warn(`[updateScoreElement] Element '${elementKey}' not found in this.elements`);
+        return;
+      }
+      
+      // Double check element exists in DOM to catch potential stale references
+      if (!document.body.contains(element)) {
+        console.warn(`[updateScoreElement] Element '${elementKey}' is not in document`);
+        return;
+      }
+      
+      // Safely update the textContent
+      element.textContent = value;
+      console.log(`[updateScoreElement] Successfully updated ${elementKey} to "${value}"`);
+    } catch (error) {
+      console.error(`[updateScoreElement] Error updating ${elementKey}:`, error);
     }
   },
   
