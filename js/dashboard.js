@@ -22,10 +22,6 @@ const Dashboard = {
       carbon: {
         primary: 'rgba(52, 168, 83, 0.7)',
         secondary: 'rgba(52, 168, 83, 0.3)'
-      },
-      temperature: {
-        primary: 'rgba(234, 67, 53, 0.7)',
-        secondary: 'rgba(234, 67, 53, 0.3)'
       }
     },
     carbonFactor: 0.71, // kg CO₂ per kWh
@@ -79,12 +75,10 @@ const Dashboard = {
       // Chart containers
       this.elements.energyChart = document.getElementById('energy-chart');
       this.elements.carbonChart = document.getElementById('carbon-chart');
-      this.elements.temperatureChart = document.getElementById('temperature-chart');
       
       // Metric cards
       this.elements.currentEnergyValue = document.getElementById('current-energy-value');
       this.elements.currentCarbonValue = document.getElementById('current-carbon-value');
-      this.elements.currentTemperatureValue = document.getElementById('current-temperature-value');
       
       // ESG Score elements
       this.elements.esgScore = document.getElementById('esg-score');
@@ -358,11 +352,19 @@ const Dashboard = {
     const energyData = [];
     const carbonData = [];
     
+    // Get the energy field name from the global CONFIG if available
+    let energyField = 'field1'; // Default fallback
+    if (window.CONFIG && window.CONFIG.thingspeak && window.CONFIG.thingspeak.fieldMap) {
+      energyField = window.CONFIG.thingspeak.fieldMap.energyUsage || 'field1';
+    }
+    
+    console.log('Using energy field:', energyField);
+    
     feeds.forEach(feed => {
       const timestamp = new Date(feed.created_at);
       
-      // Use field1 for energy usage
-      const energyValue = parseFloat(feed.field1) || 0;
+      // Use configured field for energy usage
+      const energyValue = parseFloat(feed[energyField]) || 0;
       
       // Calculate carbon emissions based on energy
       const carbonValue = energyValue * this.config.carbonFactor;
@@ -489,10 +491,6 @@ const Dashboard = {
       this.state.chartInstances.carbonChart.destroy();
     }
     
-    if (this.state.chartInstances.temperatureChart) {
-      this.state.chartInstances.temperatureChart.destroy();
-    }
-    
     // Create new charts if containers exist
     if (this.elements.energyChart) {
       this.state.chartInstances.energyChart = this.createTimeSeriesChart(
@@ -511,16 +509,6 @@ const Dashboard = {
         [],
         this.config.chartColors.carbon,
         'kg CO₂'
-      );
-    }
-    
-    if (this.elements.temperatureChart) {
-      this.state.chartInstances.temperatureChart = this.createTimeSeriesChart(
-        this.elements.temperatureChart,
-        'Temperature',
-        [],
-        this.config.chartColors.temperature,
-        '°C'
       );
     }
   },
@@ -609,12 +597,6 @@ const Dashboard = {
       this.state.chartInstances.carbonChart.data.datasets[0].data = filteredData.carbon;
       this.state.chartInstances.carbonChart.update();
     }
-    
-    // Update temperature chart
-    if (this.state.chartInstances.temperatureChart) {
-      this.state.chartInstances.temperatureChart.data.datasets[0].data = filteredData.temperature;
-      this.state.chartInstances.temperatureChart.update();
-    }
   },
   
   /**
@@ -645,12 +627,10 @@ const Dashboard = {
     // Filter each dataset
     const filteredEnergy = this.state.data.energy.filter(point => point.x >= cutoffDate);
     const filteredCarbon = this.state.data.carbon.filter(point => point.x >= cutoffDate);
-    const filteredTemperature = this.state.data.temperature.filter(point => point.x >= cutoffDate);
     
     return {
       energy: filteredEnergy,
-      carbon: filteredCarbon,
-      temperature: filteredTemperature
+      carbon: filteredCarbon
     };
   },
   
@@ -720,13 +700,6 @@ const Dashboard = {
       const latestCarbonData = this.state.data.carbon[this.state.data.carbon.length - 1];
       if (this.elements.currentCarbonValue) {
         this.elements.currentCarbonValue.textContent = latestCarbonData.y.toFixed(2) + ' kg CO₂';
-      }
-    }
-    
-    if (this.state.data.temperature.length > 0) {
-      const latestTempData = this.state.data.temperature[this.state.data.temperature.length - 1];
-      if (this.elements.currentTemperatureValue) {
-        this.elements.currentTemperatureValue.textContent = latestTempData.y.toFixed(1) + ' °C';
       }
     }
   },
@@ -1009,17 +982,47 @@ const Dashboard = {
   fallbackFetchHistoricalData: async function(channelId, apiKey, startDate, endDate) {
     console.log('Using fallback method to fetch historical ThingSpeak data');
     
+    // Format dates properly for ThingSpeak API (YYYY-MM-DD HH:MM:SS)
+    const formatDateForAPI = (dateString) => {
+      try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+          console.error('Invalid date:', dateString);
+          return null;
+        }
+        
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        return null;
+      }
+    };
+    
     // Construct the URL with start and end parameters
     const url = new URL(`https://api.thingspeak.com/channels/${encodeURIComponent(channelId)}/feeds.json`);
     url.searchParams.append('api_key', apiKey);
     
-    if (startDate) {
-      url.searchParams.append('start', startDate.replace('T', ' '));
+    const formattedStartDate = startDate ? formatDateForAPI(startDate) : null;
+    const formattedEndDate = endDate ? formatDateForAPI(endDate) : null;
+    
+    if (formattedStartDate) {
+      url.searchParams.append('start', formattedStartDate);
+      console.log('Start date:', formattedStartDate);
     }
     
-    if (endDate) {
-      url.searchParams.append('end', endDate.replace('T', ' '));
+    if (formattedEndDate) {
+      url.searchParams.append('end', formattedEndDate);
+      console.log('End date:', formattedEndDate);
     }
+    
+    console.log('Fetching from URL:', url.toString());
     
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -1030,6 +1033,9 @@ const Dashboard = {
     });
     
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
+      
       if (response.status === 404) {
         throw new Error(`Channel not found (ID: ${channelId})`);
       } else if (response.status === 401) {
@@ -1040,9 +1046,15 @@ const Dashboard = {
     }
     
     const data = await response.json();
+    console.log('Historical data received:', data);
     
     if (!data || !data.channel) {
       throw new Error('Invalid response from ThingSpeak API');
+    }
+    
+    // Log the number of data points received
+    if (data.feeds) {
+      console.log(`Received ${data.feeds.length} historical data points`);
     }
     
     // Add metadata to indicate this is historical data
