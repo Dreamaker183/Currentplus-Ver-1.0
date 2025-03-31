@@ -472,7 +472,7 @@ const Dashboard = {
     this.updateCurrentMetrics();
     
     // Calculate and update ESG scores
-    this.updateESGScores();
+    this.updateESGScores(feeds);
     
     // Cache the data
     this.saveDataToCache(data);
@@ -866,75 +866,129 @@ const Dashboard = {
   /**
    * Update ESG scores
    */
-  updateESGScores: function() {
-    // Calculate environmental score based on energy and carbon data
-    let environmentalScore = 0;
-    if (this.state.data.energy.length > 0 && this.state.data.carbon.length > 0) {
-      // Get average energy consumption over the last week
-      const recentEnergy = this.getRecentData(this.state.data.energy, 7);
-      const avgEnergy = this.calculateAverage(recentEnergy);
+  updateESGScores: function(feeds) {
+    console.log("[updateESGScores] Updating scores...");
+    
+    // Default to placeholder values if we can't calculate scores
+    let overallScore = '--';
+    let envScore = '--';
+    let socialScore = '--';
+    let govScore = '--';
+    
+    try {
+      if (feeds && feeds.length > 0) {
+        // Calculate environmental score based on energy usage
+        // This is a simplified example - adjust calculations based on your business logic
+        envScore = this.calculateEnvironmentalScore(feeds);
+        
+        // Placeholder Social & Governance scores (replace with actual logic)
+        socialScore = 70; // Example fixed value
+        govScore = 65;    // Example fixed value
+        
+        // Calculate overall ESG score (weighted average)
+        overallScore = Math.round((envScore * 0.5) + (socialScore * 0.25) + (govScore * 0.25));
+        
+        console.log(`[updateESGScores] Calculated scores: E=${envScore}, S=${socialScore}, G=${govScore}, Overall=${overallScore}`);
+      } else {
+        console.warn("[updateESGScores] No data feeds available to calculate scores");
+      }
       
-      // Simple scoring algorithm (lower energy consumption = higher score)
-      // This is just an example - replace with your actual scoring logic
-      const baseScore = 100 - (avgEnergy * 0.5);
-      environmentalScore = Math.max(0, Math.min(100, baseScore));
-    } else {
-      environmentalScore = 70; // Default score if no data
-    }
-    
-    // Social and governance scores would normally be calculated from other data sources
-    // For this example, we'll use placeholder values
-    const socialScore = 75;
-    const governanceScore = 80;
-    
-    // Overall ESG score (weighted average)
-    const esgScore = Math.round(
-      (environmentalScore * 0.4) + (socialScore * 0.3) + (governanceScore * 0.3)
-    );
-    
-    // Update score displays if the elements exist
-    if (this.elements.esgScore) {
-      this.elements.esgScore.textContent = esgScore;
-    }
-    
-    if (this.elements.environmentScore) {
-      this.elements.environmentScore.textContent = Math.round(environmentalScore);
-    }
-    
-    if (this.elements.socialScore) {
-      this.elements.socialScore.textContent = socialScore;
-    }
-    
-    if (this.elements.governanceScore) {
-      this.elements.governanceScore.textContent = governanceScore;
+      // Ensure scores are valid strings (never undefined, null, or empty)
+      overallScore = overallScore?.toString() || '--';
+      envScore = envScore?.toString() || '--';
+      socialScore = socialScore?.toString() || '--';
+      govScore = govScore?.toString() || '--';
+      
+      // Update UI with scores - safely set text content
+      if (this.elements.esgScore) {
+        this.elements.esgScore.textContent = overallScore;
+      } else {
+        console.error("[updateESGScores] esgScore element not found in DOM");
+      }
+      
+      if (this.elements.environmentScore) {
+        this.elements.environmentScore.textContent = envScore;
+      } else {
+        console.error("[updateESGScores] environmentScore element not found in DOM");
+      }
+      
+      if (this.elements.socialScore) {
+        this.elements.socialScore.textContent = socialScore;
+      } else {
+        console.error("[updateESGScores] socialScore element not found in DOM");
+      }
+      
+      if (this.elements.governanceScore) {
+        this.elements.governanceScore.textContent = govScore;
+      } else {
+        console.error("[updateESGScores] governanceScore element not found in DOM");
+      }
+      
+      console.log("[updateESGScores] Score element updates complete");
+    } catch (error) {
+      console.error("[updateESGScores] Error calculating or updating scores:", error);
+      
+      // Try to update UI with default values even if calculation failed
+      try {
+        if (this.elements.esgScore) this.elements.esgScore.textContent = '--';
+        if (this.elements.environmentScore) this.elements.environmentScore.textContent = '--';
+        if (this.elements.socialScore) this.elements.socialScore.textContent = '--';
+        if (this.elements.governanceScore) this.elements.governanceScore.textContent = '--';
+      } catch (e) {
+        console.error("[updateESGScores] Failed to set default values:", e);
+      }
     }
   },
   
   /**
-   * Get recent data points
-   * @param {Array} data - Data array
-   * @param {number} days - Number of days to include
-   * @returns {Array} - Recent data points
+   * Calculate environmental score based on energy usage from feeds
+   * @param {Array} feeds - ThingSpeak data feeds
+   * @returns {number} Environmental score (0-100)
    */
-  getRecentData: function(data, days) {
-    const now = new Date();
-    const cutoffDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    
-    return data.filter(point => point.x >= cutoffDate);
-  },
-  
-  /**
-   * Calculate average value from data points
-   * @param {Array} data - Data array
-   * @returns {number} - Average value
-   */
-  calculateAverage: function(data) {
-    if (!data || data.length === 0) {
-      return 0;
+  calculateEnvironmentalScore: function(feeds) {
+    try {
+      // Example implementation - adjust based on your specific needs
+      // Get the energy field from config
+      const energyField = this.config.thingspeak.fieldMap.energyUsage || 'field1';
+      
+      // Get recent feeds (last 10)
+      const recentFeeds = feeds.slice(-10);
+      
+      // Calculate average energy consumption
+      let totalEnergy = 0;
+      let validReadings = 0;
+      
+      recentFeeds.forEach(feed => {
+        const value = parseFloat(feed[energyField]);
+        if (!isNaN(value)) {
+          totalEnergy += value;
+          validReadings++;
+        }
+      });
+      
+      if (validReadings === 0) {
+        console.warn("[calculateEnvironmentalScore] No valid energy readings found");
+        return 50; // Default mid-range score
+      }
+      
+      const avgEnergy = totalEnergy / validReadings;
+      console.log(`[calculateEnvironmentalScore] Average energy: ${avgEnergy} from ${validReadings} readings`);
+      
+      // Example scoring logic: lower energy is better
+      // Adjust thresholds based on your specific energy usage patterns
+      if (avgEnergy < 5) return 90;
+      if (avgEnergy < 10) return 80;
+      if (avgEnergy < 15) return 70;
+      if (avgEnergy < 20) return 60;
+      if (avgEnergy < 25) return 50;
+      if (avgEnergy < 30) return 40;
+      if (avgEnergy < 35) return 30;
+      
+      return 20; // High energy usage gets a low score
+    } catch (error) {
+      console.error("[calculateEnvironmentalScore] Error:", error);
+      return 50; // Default mid-range score on error
     }
-    
-    const sum = data.reduce((total, point) => total + point.y, 0);
-    return sum / data.length;
   },
   
   /**

@@ -322,131 +322,150 @@
     <script>
         // Script to update score visualizations when values change
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("Dashboard inline script: DOMContentLoaded");
+            console.log("[Inline Script] DOMContentLoaded");
 
-            // Safely update element width and handle potential errors
+            // Safely update element width - Enhanced Checks
             function safeUpdateWidth(targetId, width) {
-                const element = document.getElementById(targetId);
-                console.log(`safeUpdateWidth: Attempting to find element with ID [${targetId}]. Found:`, element ? 'Yes' : 'No'); // Log finding attempt
+                // Wrap in requestAnimationFrame to potentially help with timing issues
+                requestAnimationFrame(() => {
+                    console.log(`[safeUpdateWidth RAF] Attempting ID [${targetId}] with width ${width}`);
+                    const element = document.getElementById(targetId);
 
-                if (element) {
-                    try {
-                        // Explicitly check if .style property exists AND is an object
-                        if (element.style && typeof element.style === 'object') {
-                            console.log(`safeUpdateWidth: Updating width for [${targetId}] to ${width}%`);
-                            element.classList.remove('width-zero'); // Ensure animation starts from 0 if re-applied
-                            element.style.width = `${width}%`;
-                        } else {
-                            // This case is unusual but handles the specific error reported
-                            console.warn(`safeUpdateWidth: Element [${targetId}] found, but its '.style' property is missing or not an object. Cannot set width.`);
-                        }
-                    } catch (e) {
-                        // Catch any other unexpected errors during style manipulation
-                        console.error(`safeUpdateWidth: Error setting width for [${targetId}]:`, e);
+                    if (!element) {
+                        console.warn(`[safeUpdateWidth RAF] Element NOT FOUND for ID [${targetId}]. Cannot set width.`);
+                        return; // Element doesn't exist, stop here.
                     }
-                } else {
-                    // Log clearly if the element itself was not found
-                    console.warn(`safeUpdateWidth: Element with ID [${targetId}] not found in the DOM.`);
-                }
+
+                    // *** CRITICAL CHECK: Verify .style exists RIGHT BEFORE using it ***
+                    if (element.style && typeof element.style === 'object') {
+                        try {
+                            console.log(`[safeUpdateWidth RAF] Element [${targetId}] found. Setting width to ${width}%. Element:`, element);
+                            element.classList.remove('width-zero');
+                            element.style.width = `${width}%`;
+                            console.log(`[safeUpdateWidth RAF] Successfully set width for [${targetId}]`);
+                        } catch (e) {
+                            console.error(`[safeUpdateWidth RAF] Error setting width for [${targetId}] even after checks:`, e, "Element:", element);
+                        }
+                    } else {
+                        // This catches if element exists but element.style is null/undefined/wrong type
+                        console.warn(`[safeUpdateWidth RAF] Element [${targetId}] FOUND, but '.style' property is invalid. Cannot set width. Element.style:`, element.style);
+                    }
+                });
             }
 
             // Function to setup observer for a score element
             function setupScoreObserver(scoreElementId, barElementId) {
                 const scoreElement = document.getElementById(scoreElementId);
-                const barElement = document.getElementById(barElementId); // Pre-check if bar exists
 
                 if (!scoreElement) {
-                    console.error(`Observer Setup Error: Score element #${scoreElementId} not found.`);
-                    return;
-                }
-                 if (!barElement) {
-                    console.warn(`Observer Setup Warning: Bar element #${barElementId} not found. Cannot update width visually.`);
-                    // Continue observing the score text, but width update will fail later (and be logged by safeUpdateWidth)
+                    console.error(`[Observer Setup] Score element #${scoreElementId} NOT FOUND.`);
+                    return; // Cannot observe if score element doesn't exist
                 }
 
-                console.log(`Setting up observer for score element: #${scoreElementId}`);
+                 // Check if bar element exists *at setup time* for early warning
+                 if (!document.getElementById(barElementId)) {
+                    console.warn(`[Observer Setup] Bar element #${barElementId} NOT FOUND at setup time for score #${scoreElementId}. Width updates will fail.`);
+                 }
+
+                console.log(`[Observer Setup] Setting up observer for score element: #${scoreElementId} -> bar: #${barElementId}`);
+
                 const observer = new MutationObserver(function(mutations) {
                     mutations.forEach(function(mutation) {
-                         // Check both childList (if structure changes) and characterData (if text directly changes)
+                         // Only process if text content actually changed
                          if (mutation.type === 'childList' || mutation.type === 'characterData') {
-                            console.log(`Mutation detected on #${scoreElementId}, Type: ${mutation.type}`);
-                            // Use nodeValue for characterData, textContent otherwise. Fallback to empty string.
-                             const scoreText = mutation.target.nodeValue || mutation.target.textContent || '';
-                             console.log(`  Raw text content: "${scoreText}"`);
+                            const targetNode = mutation.target;
+                            // Get text content - prefer nodeValue for text nodes, fallback to textContent
+                            const scoreText = (targetNode.nodeType === Node.TEXT_NODE ? targetNode.nodeValue : targetNode.textContent)?.trim() || '';
 
-                             // Attempt to parse the score value
-                             const scoreValue = parseInt(scoreText, 10); // Always provide radix
+                            console.log(`[Mutation Detected] Target: #${scoreElementId}, Type: ${mutation.type}, Raw Text: "${scoreText}"`);
 
-                             if (!isNaN(scoreValue)) {
-                                 console.log(`  Parsed score: ${scoreValue}. Calling safeUpdateWidth for #${barElementId}.`);
-                                 // Call the safe update function for the corresponding bar
-                                 safeUpdateWidth(barElementId, scoreValue);
-                             } else {
-                                 console.warn(`  Parsed score for #${scoreElementId} is NaN. Raw text was: "${scoreText}". Resetting bar?`);
-                                 // Optionally reset the bar to 0% if the text becomes non-numeric
-                                 safeUpdateWidth(barElementId, 0);
-                             }
+                            // Check if barElementId is valid before proceeding
+                            if (!barElementId) {
+                                console.error(`[Mutation Detected] Invalid barElementId for scoreElementId #${scoreElementId}. Aborting update.`);
+                                return;
+                            }
+
+                            const scoreValue = parseInt(scoreText, 10);
+
+                            if (!isNaN(scoreValue)) {
+                                console.log(`  [Mutation Detected] Parsed score: ${scoreValue}. Calling safeUpdateWidth for #${barElementId}.`);
+                                // Ensure score is within 0-100 range for width percentage
+                                const clampedScore = Math.max(0, Math.min(100, scoreValue));
+                                safeUpdateWidth(barElementId, clampedScore);
+                            } else {
+                                console.warn(`  [Mutation Detected] Parsed score for #${scoreElementId} is NaN. Raw text: "${scoreText}". Setting bar #${barElementId} to 0.`);
+                                safeUpdateWidth(barElementId, 0); // Reset bar to 0% if score is not a number
+                            }
                          }
                     });
                 });
 
-                // Observe the score element for changes in its direct text content or children
                 observer.observe(scoreElement, {
-                    childList: true,      // For changes in children (e.g., if text is wrapped in a span)
-                    characterData: true,  // For changes directly to text nodes
-                    subtree: true         // Include descendants
+                    childList: true,
+                    characterData: true,
+                    subtree: true
                 });
-                 console.log(`Observer attached to #${scoreElementId}`);
+                console.log(`[Observer Setup] Observer attached to #${scoreElementId}`);
             }
 
-            // Setup observers for all scores
-            setupScoreObserver('esg-score', 'esg-score-circle'); // Note: Circle uses stroke-dasharray, handled separately below
+            // Setup observers for all progress bars
             setupScoreObserver('environment-score', 'environment-score-bar');
             setupScoreObserver('social-score', 'social-score-bar');
             setupScoreObserver('governance-score', 'governance-score-bar');
 
-            // --- Special handling for the ESG Score Circle ---
+
+            // --- Special handling for the ESG Score Circle (uses SVG attributes, not style.width) ---
             const esgScoreElement = document.getElementById('esg-score');
             const esgCircleElement = document.getElementById('esg-score-circle');
 
             if (esgScoreElement && esgCircleElement) {
-                 console.log("Setting up observer for ESG score circle");
+                 console.log("[Observer Setup] Setting up observer for ESG score circle (#esg-score -> #esg-score-circle)");
                  const esgCircleObserver = new MutationObserver(function(mutations) {
                      mutations.forEach(function(mutation) {
                          if (mutation.type === 'childList' || mutation.type === 'characterData') {
-                            console.log("Mutation detected on #esg-score for circle update");
-                             const scoreText = mutation.target.nodeValue || mutation.target.textContent || '';
+                             const targetNode = mutation.target;
+                             const scoreText = (targetNode.nodeType === Node.TEXT_NODE ? targetNode.nodeValue : targetNode.textContent)?.trim() || '';
+                             console.log(`[Mutation Detected Circle] Target: #esg-score, Raw text: "${scoreText}"`);
                              const scoreValue = parseInt(scoreText, 10);
-                             console.log(`  Raw text: "${scoreText}", Parsed value: ${scoreValue}`);
 
                              if (!isNaN(scoreValue)) {
-                                 // Clamp score between 0 and 100 for the circle
                                  const clampedScore = Math.max(0, Math.min(100, scoreValue));
-                                 console.log(`  Updating circle stroke-dasharray to: ${clampedScore}, 100`);
+                                 console.log(`  [Mutation Detected Circle] Parsed score: ${clampedScore}. Updating circle stroke-dasharray.`);
                                  try {
-                                     esgCircleElement.setAttribute('stroke-dasharray', `${clampedScore}, 100`);
+                                     // Ensure circle element still exists before setting attribute
+                                     const circle = document.getElementById('esg-score-circle');
+                                     if(circle) {
+                                        circle.setAttribute('stroke-dasharray', `${clampedScore}, 100`);
+                                     } else {
+                                        console.warn("  [Mutation Detected Circle] #esg-score-circle element lost before setting attribute!");
+                                     }
                                  } catch(e) {
-                                     console.error("Error setting stroke-dasharray for esg-score-circle:", e);
+                                     console.error("[Mutation Detected Circle] Error setting stroke-dasharray:", e);
                                  }
                              } else {
-                                console.warn("  Parsed ESG score is NaN. Setting circle to 0.");
+                                 console.warn(`  [Mutation Detected Circle] Parsed ESG score is NaN. Resetting circle.`);
                                  try {
-                                      esgCircleElement.setAttribute('stroke-dasharray', `0, 100`);
+                                      const circle = document.getElementById('esg-score-circle');
+                                      if(circle) {
+                                        circle.setAttribute('stroke-dasharray', `0, 100`);
+                                      } else {
+                                        console.warn("  [Mutation Detected Circle] #esg-score-circle element lost before resetting attribute!");
+                                      }
                                  } catch(e) {
-                                     console.error("Error resetting stroke-dasharray for esg-score-circle:", e);
+                                     console.error("[Mutation Detected Circle] Error resetting stroke-dasharray:", e);
                                  }
                              }
                          }
                      });
                  });
                  esgCircleObserver.observe(esgScoreElement, { childList: true, characterData: true, subtree: true });
-                 console.log("Observer attached to #esg-score for circle update");
+                 console.log("[Observer Setup] Observer attached to #esg-score for circle update");
             } else {
-                if (!esgScoreElement) console.error("Observer Setup Error: #esg-score element not found for circle.");
-                if (!esgCircleElement) console.error("Observer Setup Error: #esg-score-circle element not found.");
+                if (!esgScoreElement) console.error("[Observer Setup Error] #esg-score element NOT FOUND for circle.");
+                if (!esgCircleElement) console.error("[Observer Setup Error] #esg-score-circle element NOT FOUND.");
             }
 
-             console.log("Dashboard inline script: Setup complete.");
+             console.log("[Inline Script] Setup complete.");
         });
     </script>
 </body>
