@@ -3,7 +3,50 @@
  * Main dashboard functionality with reliable ThingSpeak data fetching
  */
 
+// DOM safe utility to prevent "Cannot read property of null" errors
+const domSafe = {
+  getElementById: (id) => document.getElementById(id),
+  setText: (id, text) => {
+    const element = typeof id === 'string' ? document.getElementById(id) : id;
+    if (element) element.textContent = text;
+  },
+  setHTML: (id, html) => {
+    const element = typeof id === 'string' ? document.getElementById(id) : id;
+    if (element) element.innerHTML = html;
+  },
+  addClass: (id, className) => {
+    const element = typeof id === 'string' ? document.getElementById(id) : id;
+    if (element) element.classList.add(className);
+  },
+  removeClass: (id, className) => {
+    const element = typeof id === 'string' ? document.getElementById(id) : id;
+    if (element) element.classList.remove(className);
+  },
+  setValue: (id, value) => {
+    const element = typeof id === 'string' ? document.getElementById(id) : id;
+    if (element) element.value = value;
+  },
+  getValue: (id) => {
+    const element = typeof id === 'string' ? document.getElementById(id) : id;
+    return element ? element.value : null;
+  }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
+  // Check if Chart.js is available before initializing the dashboard
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js is not loaded! Dashboard will not function properly.');
+    const errorEl = document.getElementById('error-notification');
+    const errorText = document.getElementById('error-text');
+    if (errorEl && errorText) {
+      errorText.textContent = 'Required library Chart.js is missing. Please check the console for details.';
+      errorEl.classList.remove('hidden');
+    } else {
+      alert('Required library Chart.js is missing. Dashboard cannot initialize.');
+    }
+    return;
+  }
+  
   // Initialize the dashboard
   Dashboard.init();
 });
@@ -258,18 +301,36 @@ const Dashboard = {
     // Check if we have necessary settings
     if (!this.state.thingSpeakSettings) {
       console.error('ThingSpeak settings not found');
-      this.showConfigurationRequired();
-      return;
+      
+      // Try both potential localStorage keys since names might be inconsistent
+      const channelId = localStorage.getItem('thingspeak_channelID') || localStorage.getItem('thingspeakChannelID');
+      const apiKey = localStorage.getItem('thingspeak_readAPIKey') || localStorage.getItem('thingspeakAPIKey');
+      
+      if (channelId && apiKey && channelId !== "YOUR_CHANNEL_ID" && apiKey !== "YOUR_API_KEY") {
+        console.log('Found ThingSpeak credentials in localStorage with alternate keys');
+        this.state.thingSpeakSettings = {
+          channelId: channelId,
+          apiKey: apiKey,
+          resultsToFetch: 100
+        };
+        // Save with consistent naming for next time
+        localStorage.setItem('thingSpeakSettings', JSON.stringify(this.state.thingSpeakSettings));
+      } else {
+        this.showConfigurationRequired();
+        return;
+      }
     }
     
     // Extract settings, checking for both camelCase and snake_case property names for compatibility
     const channelId = this.state.thingSpeakSettings.channelId || 
-                      this.state.thingSpeakSettings.channelID || 
-                      localStorage.getItem('thingspeak_channelID');
-                      
+                    this.state.thingSpeakSettings.channelID || 
+                    localStorage.getItem('thingspeak_channelID') || 
+                    localStorage.getItem('thingspeakChannelID');
+                    
     const apiKey = this.state.thingSpeakSettings.apiKey || 
                   this.state.thingSpeakSettings.readAPIKey || 
-                  localStorage.getItem('thingspeak_readAPIKey');
+                  localStorage.getItem('thingspeak_readAPIKey') || 
+                  localStorage.getItem('thingspeakAPIKey');
                   
     const resultsToFetch = this.state.thingSpeakSettings.resultsToFetch || 
                           this.state.thingSpeakSettings.results || 
@@ -280,6 +341,8 @@ const Dashboard = {
       this.showError('ThingSpeak Channel ID and API Key are required. Please configure in Settings.');
       return;
     }
+    
+    console.log('Using ThingSpeak credentials:', { channelId, apiKey: apiKey ? apiKey.substring(0, 4) + '...' : 'null' });
     
     this.showLoading('Fetching data from ThingSpeak...');
     this.state.isLoading = true;
@@ -567,59 +630,79 @@ const Dashboard = {
    * @param {Array} data - Initial data
    * @param {Object} colors - Chart colors object
    * @param {string} unit - Data unit
-   * @returns {Chart} - Chart.js chart instance
+   * @returns {Chart|null} - Chart.js chart instance or null if creation fails
    */
   createTimeSeriesChart: function(container, label, data, colors, unit) {
-    const ctx = container.getContext('2d');
-    
-    return new Chart(ctx, {
-      type: 'line',
-      data: {
-        datasets: [{
-          label: label,
-          data: data,
-          borderColor: colors.primary,
-          backgroundColor: colors.secondary,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 2,
-          pointHoverRadius: 5
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            type: 'time',
-            time: {
-              unit: 'day',
-              tooltipFormat: 'MMM d, yyyy HH:mm'
+    try {
+      if (!container) {
+        console.error(`Chart container for ${label} is null or undefined`);
+        return null;
+      }
+      
+      // Check if Chart.js is available
+      if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded. Cannot create chart.');
+        return null;
+      }
+      
+      const ctx = container.getContext('2d');
+      if (!ctx) {
+        console.error(`Could not get 2d context for ${label} chart`);
+        return null;
+      }
+      
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: label,
+            data: data,
+            borderColor: colors.primary,
+            backgroundColor: colors.secondary,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2,
+            pointHoverRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'day',
+                tooltipFormat: 'MMM d, yyyy HH:mm'
+              },
+              title: {
+                display: true,
+                text: 'Date'
+              }
             },
-            title: {
-              display: true,
-              text: 'Date'
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: unit
+              }
             }
           },
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: unit
-            }
-          }
-        },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} ${unit}`;
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} ${unit}`;
+                }
               }
             }
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error(`Error creating ${label} chart:`, error);
+      return null;
+    }
   },
   
   /**
