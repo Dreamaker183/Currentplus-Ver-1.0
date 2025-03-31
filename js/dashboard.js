@@ -110,59 +110,84 @@ const Dashboard = {
    */
   loadDOMElements: function() {
     try {
-      // Track missing elements
-      const missingElements = [];
+      // Critical elements - if these are missing, the dashboard won't function properly
+      const criticalElements = [
+        'last-updated', 
+        'connection-status', 
+        'channel-name', 
+        'energy-chart', 
+        'carbon-chart', 
+        'error-notification', 
+        'error-text',
+        'loading-indicator',
+        'loading-text'
+      ];
       
-      // Helper function to safely get elements and track missing ones
-      const getElement = (id) => {
-        const element = document.getElementById(id);
-        if (!element) {
-          missingElements.push(id);
+      // Non-critical elements - dashboard can function without these
+      const optionalElements = [
+        'current-energy-value',
+        'current-carbon-value',
+        'esg-score', 
+        'environment-score',
+        'social-score', 
+        'governance-score', 
+        'environment-score-bar',
+        'social-score-bar', 
+        'governance-score-bar', 
+        'esg-score-circle',
+        'historical-panel',
+        'history-start-date',
+        'history-end-date',
+        'show-history',
+        'fetch-history',
+        'cancel-history'
+      ];
+      
+      const missingCritical = [];
+      const missingOptional = [];
+      
+      // Check for critical elements
+      criticalElements.forEach(id => {
+        this.elements[id] = document.getElementById(id);
+        if (!this.elements[id]) {
+          missingCritical.push(id);
+          console.error(`[loadDOMElements] Critical element #${id} NOT FOUND - Dashboard may not function properly`);
         }
-        return element;
-      };
+      });
       
-      // Status elements
-      this.elements.lastUpdated = getElement('last-updated');
-      this.elements.connectionStatus = getElement('connection-status');
-      this.elements.channelName = getElement('channel-name');
+      // Check for optional elements
+      optionalElements.forEach(id => {
+        this.elements[id] = document.getElementById(id);
+        if (!this.elements[id]) {
+          missingOptional.push(id);
+          console.warn(`[loadDOMElements] Optional element #${id} not found`);
+        }
+      });
       
-      // Chart containers
-      this.elements.energyChart = getElement('energy-chart');
-      this.elements.carbonChart = getElement('carbon-chart');
+      // Log summary of missing elements
+      if (missingCritical.length > 0) {
+        console.error(`[loadDOMElements] ${missingCritical.length} critical elements missing: ${missingCritical.join(', ')}`);
+      }
       
-      // Metric cards
-      this.elements.currentEnergyValue = getElement('current-energy-value');
-      this.elements.currentCarbonValue = getElement('current-carbon-value');
+      if (missingOptional.length > 0) {
+        console.warn(`[loadDOMElements] ${missingOptional.length} optional elements missing: ${missingOptional.join(', ')}`);
+      }
       
-      // ESG Score elements
-      this.elements.esgScore = getElement('esg-score');
-      this.elements.environmentScore = getElement('environment-score');
-      this.elements.socialScore = getElement('social-score');
-      this.elements.governanceScore = getElement('governance-score');
-      
-      // Loading indicator
-      this.elements.loadingIndicator = getElement('loading-indicator');
-      this.elements.loadingText = getElement('loading-text');
-      
-      // Error notification
-      this.elements.errorNotification = getElement('error-notification');
-      this.elements.errorText = getElement('error-text');
-      
-      // Historical data elements
-      this.elements.historicalPanel = getElement('historical-data-panel');
-      this.elements.historyStartDate = getElement('history-start-date');
-      this.elements.historyEndDate = getElement('history-end-date');
-      this.elements.showHistoryBtn = getElement('show-history');
-      this.elements.fetchHistoryBtn = getElement('fetch-history');
-      this.elements.cancelHistoryBtn = getElement('cancel-history');
-      
-      // Log missing elements for debugging
-      if (missingElements.length > 0) {
-        console.warn('Missing DOM elements:', missingElements.join(', '));
+      // Show a visible error if critical elements are missing
+      if (missingCritical.length > 0) {
+        const errorElement = document.getElementById('error-notification');
+        const errorText = document.getElementById('error-text');
+        
+        if (errorElement && errorText) {
+          errorText.textContent = `Missing critical elements: ${missingCritical.join(', ')}. Dashboard may not function properly.`;
+          errorElement.classList.remove('hidden');
+        } else {
+          alert(`Dashboard Error: Missing critical elements: ${missingCritical.join(', ')}`);
+        }
       }
     } catch (error) {
-      console.error('Error loading DOM elements:', error);
+      console.error('[loadDOMElements] Error loading DOM elements:', error);
+      alert('Dashboard Error: Failed to initialize elements. Check console for details.');
     }
   },
   

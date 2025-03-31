@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThingSpeak Connection Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+    .warning { color: orange; font-weight: bold; }
+    .hidden { display: none; }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    input {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .field {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ThingSpeak Connection Test</h1>
+    <p>This page tests your ThingSpeak connection by attempting to fetch data from your channel.</p>
+    
+    <div class="field">
+      <label for="channel-id">Channel ID:</label>
+      <input type="text" id="channel-id" placeholder="Enter your ThingSpeak Channel ID">
+    </div>
+    
+    <div class="field">
+      <label for="api-key">API Key:</label>
+      <input type="text" id="api-key" placeholder="Enter your ThingSpeak API Key">
+    </div>
+    
+    <div class="field">
+      <button id="test-btn">Test Connection</button>
+      <button id="load-from-storage-btn">Load from localStorage</button>
+    </div>
+    
+    <div id="status" class="field">
+      <h2>Status:</h2>
+      <div id="connection-status">Not tested yet</div>
+    </div>
+    
+    <div id="debug-info" class="field">
+      <h2>Debug Information:</h2>
+      <div>localStorage Keys:</div>
+      <pre id="local-storage-keys">Loading...</pre>
+      
+      <div class="hidden" id="response-container">
+        <div>API Response:</div>
+        <pre id="api-response">No data yet</pre>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Display localStorage keys
+      displayLocalStorageKeys();
+      
+      // Setup event listeners
+      document.getElementById('test-btn').addEventListener('click', testConnection);
+      document.getElementById('load-from-storage-btn').addEventListener('click', loadFromStorage);
+    });
+    
+    function displayLocalStorageKeys() {
+      const keysElement = document.getElementById('local-storage-keys');
+      try {
+        const keys = Object.keys(localStorage);
+        const keyValues = keys.map(key => {
+          const value = localStorage.getItem(key);
+          // Don't display full API keys for security
+          const displayValue = key.toLowerCase().includes('key') ? 
+            value.substring(0, 4) + '...' : value;
+          return `${key}: ${displayValue}`;
+        });
+        
+        if (keys.length === 0) {
+          keysElement.textContent = "No localStorage keys found";
+        } else {
+          keysElement.textContent = keyValues.join('\n');
+        }
+      } catch (error) {
+        keysElement.textContent = `Error reading localStorage: ${error.message}`;
+      }
+    }
+    
+    function loadFromStorage() {
+      const channelIdInput = document.getElementById('channel-id');
+      const apiKeyInput = document.getElementById('api-key');
+      const status = document.getElementById('connection-status');
+      
+      // Try different potential localStorage keys
+      const channelId = localStorage.getItem('thingspeakChannelID') || 
+                        localStorage.getItem('thingspeak_channelID');
+                        
+      const apiKey = localStorage.getItem('thingspeakAPIKey') || 
+                    localStorage.getItem('thingspeak_readAPIKey');
+      
+      if (channelId) {
+        channelIdInput.value = channelId;
+      }
+      
+      if (apiKey) {
+        apiKeyInput.value = apiKey;
+      }
+      
+      if (!channelId || !apiKey) {
+        status.textContent = "Could not find credentials in localStorage";
+        status.className = "warning";
+      } else {
+        status.textContent = "Loaded credentials from localStorage";
+        status.className = "success";
+      }
+    }
+    
+    async function testConnection() {
+      const channelId = document.getElementById('channel-id').value.trim();
+      const apiKey = document.getElementById('api-key').value.trim();
+      const status = document.getElementById('connection-status');
+      const responseContainer = document.getElementById('response-container');
+      const apiResponse = document.getElementById('api-response');
+      
+      if (!channelId || !apiKey) {
+        status.textContent = "Please enter both Channel ID and API Key";
+        status.className = "error";
+        return;
+      }
+      
+      status.textContent = "Testing connection...";
+      status.className = "";
+      
+      try {
+        const url = `https://api.thingspeak.com/channels/${encodeURIComponent(channelId)}/feeds.json?api_key=${encodeURIComponent(apiKey)}&results=1`;
+        console.log("Fetching from:", url);
+        
+        const response = await fetch(url);
+        console.log("Response status:", response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Data received:", data);
+        
+        // Show result
+        status.textContent = `✅ Connected to channel: ${data.channel.name} (${data.channel.id})`;
+        status.className = "success";
+        
+        // Display response data
+        responseContainer.classList.remove('hidden');
+        apiResponse.textContent = JSON.stringify(data, null, 2);
+        
+        // Save working credentials to localStorage if not already there
+        if (!localStorage.getItem('thingspeakChannelID')) {
+          localStorage.setItem('thingspeakChannelID', channelId);
+        }
+        
+        if (!localStorage.getItem('thingspeakAPIKey')) {
+          localStorage.setItem('thingspeakAPIKey', apiKey);
+        }
+        
+        // Update localStorage display
+        displayLocalStorageKeys();
+        
+      } catch (error) {
+        console.error("Connection error:", error);
+        status.textContent = `❌ Connection error: ${error.message}`;
+        status.className = "error";
+        
+        // Show empty response 
+        responseContainer.classList.remove('hidden');
+        apiResponse.textContent = `Error: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html> 
