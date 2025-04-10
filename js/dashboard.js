@@ -436,71 +436,101 @@ const Dashboard = {
    * @param {boolean} isHistorical - Whether this is historical data
    */
   processThingSpeakData: function(data, isHistorical = false) {
+    console.log('[processThingSpeakData] Start processing. Is historical:', isHistorical);
     if (!data || !data.channel || !data.feeds) {
+      console.error('[processThingSpeakData] Invalid data format received:', data);
       this.showError('Invalid data format from ThingSpeak');
       return;
     }
-    
-    // Update channel info
-    if (this.elements.channelName) {
-      this.elements.channelName.textContent = data.channel.name + (isHistorical ? ' (Historical)' : '');
+
+    // ----- Update basic info safely ----- 
+    try {
+      if (this.elements.channelName) {
+        this.elements.channelName.textContent = data.channel.name + (isHistorical ? ' (Historical)' : '');
+        console.log('[processThingSpeakData] Updated channel name');
+      } else {
+        console.warn('[processThingSpeakData] channelName element not found');
+      }
+
+      if (this.elements.connectionStatus) {
+        this.elements.connectionStatus.innerHTML = '<span class="text-green-500"><i class="fas fa-check-circle mr-1"></i>Connected</span>';
+        console.log('[processThingSpeakData] Updated connection status');
+      } else {
+        console.warn('[processThingSpeakData] connectionStatus element not found');
+      }
+    } catch (basicInfoError) {
+      console.error('[processThingSpeakData] Error updating basic info:', basicInfoError);
     }
-    
-    if (this.elements.connectionStatus) {
-      this.elements.connectionStatus.innerHTML = '<span class="text-green-500"><i class="fas fa-check-circle mr-1"></i>Connected</span>';
-    }
-    
-    // Process feeds
+
+    // ----- Process feeds safely ----- 
     const feeds = data.feeds;
-    
-    // Prepare data arrays for charts
     const energyData = [];
     const carbonData = [];
-    
-    // Get the energy field name from the global CONFIG if available
     let energyField = 'field1'; // Default fallback
-    if (window.CONFIG && window.CONFIG.thingspeak && window.CONFIG.thingspeak.fieldMap) {
-      energyField = window.CONFIG.thingspeak.fieldMap.energyUsage || 'field1';
+    
+    try {
+      if (window.CONFIG && window.CONFIG.thingspeak && window.CONFIG.thingspeak.fieldMap) {
+        energyField = window.CONFIG.thingspeak.fieldMap.energyUsage || 'field1';
+      }
+      console.log('[processThingSpeakData] Using energy field:', energyField);
+
+      feeds.forEach(feed => {
+        const timestamp = new Date(feed.created_at);
+        const energyValue = parseFloat(feed[energyField]) || 0;
+        const carbonValue = energyValue * this.config.carbonFactor;
+        
+        energyData.push({ x: timestamp, y: energyValue });
+        carbonData.push({ x: timestamp, y: carbonValue });
+      });
+      
+      // Store processed data only if successful
+      this.state.data.energy = energyData;
+      this.state.data.carbon = carbonData;
+      console.log(`[processThingSpeakData] Processed ${feeds.length} feeds into energy/carbon data`);
+    } catch (feedProcessingError) {
+      console.error('[processThingSpeakData] Error processing feeds:', feedProcessingError);
+      this.showError('Error processing data feeds. Charts and scores might be inaccurate.');
+      // Clear data to prevent using corrupted data
+      this.state.data.energy = [];
+      this.state.data.carbon = [];
+      // Skip further UI updates if feed processing failed
+      return;
+    }
+
+    // ----- Update UI components safely ----- 
+    try {
+      console.log('[processThingSpeakData] Attempting to update charts...');
+      this.updateCharts();
+      console.log('[processThingSpeakData] Charts update attempted.');
+    } catch (chartError) {
+      console.error('[processThingSpeakData] Error during updateCharts call:', chartError);
     }
     
-    console.log('Using energy field:', energyField);
+    try {
+      console.log('[processThingSpeakData] Attempting to update current metrics...');
+      this.updateCurrentMetrics();
+      console.log('[processThingSpeakData] Current metrics update attempted.');
+    } catch (metricsError) {
+      console.error('[processThingSpeakData] Error during updateCurrentMetrics call:', metricsError);
+    }
     
-    feeds.forEach(feed => {
-      const timestamp = new Date(feed.created_at);
-      
-      // Use configured field for energy usage
-      const energyValue = parseFloat(feed[energyField]) || 0;
-      
-      // Calculate carbon emissions based on energy
-      const carbonValue = energyValue * this.config.carbonFactor;
-      
-      // Add to data arrays
-      energyData.push({
-        x: timestamp,
-        y: energyValue
-      });
-      
-      carbonData.push({
-        x: timestamp,
-        y: carbonValue
-      });
-    });
+    try {
+      console.log('[processThingSpeakData] Attempting to update ESG scores...');
+      this.updateESGScores(feeds);
+      console.log('[processThingSpeakData] ESG scores update attempted.');
+    } catch (esgError) {
+      console.error('[processThingSpeakData] Error during updateESGScores call:', esgError);
+    }
     
-    // Store the processed data
-    this.state.data.energy = energyData;
-    this.state.data.carbon = carbonData;
+    // Cache the original, raw data
+    try {
+      this.saveDataToCache(data);
+      console.log('[processThingSpeakData] Data saved to cache.');
+    } catch (cacheError) {
+      console.error('[processThingSpeakData] Error saving data to cache:', cacheError);
+    }
     
-    // Update charts
-    this.updateCharts();
-    
-    // Update current metrics
-    this.updateCurrentMetrics();
-    
-    // Calculate and update ESG scores
-    this.updateESGScores(feeds);
-    
-    // Cache the data
-    this.saveDataToCache(data);
+    console.log('[processThingSpeakData] Processing complete.');
   },
   
   /**
@@ -850,12 +880,14 @@ const Dashboard = {
    * @param {string} timeframe - New timeframe (day, week, month, year)
    */
   changeTimeframe: function(timeframe) {
+    console.log('[changeTimeframe] Changing timeframe to:', timeframe);
     try {
       // Update active button UI safely
       const buttons = document.querySelectorAll('.timeframe-btn');
       if (buttons && buttons.length) {
         buttons.forEach(btn => {
-          if (btn) {
+          // Check if button and its classList exist before modification
+          if (btn && btn.classList) { 
             if (btn.dataset.timeframe === timeframe) {
               btn.classList.add('bg-blue-600');
               btn.classList.remove('bg-gray-700');
@@ -863,8 +895,13 @@ const Dashboard = {
               btn.classList.remove('bg-blue-600');
               btn.classList.add('bg-gray-700');
             }
+          } else {
+            console.warn('[changeTimeframe] Found invalid button in timeframe buttons list');
           }
         });
+        console.log('[changeTimeframe] Updated button styles');
+      } else {
+        console.warn('[changeTimeframe] No timeframe buttons found');
       }
       
       // Update timeframe state
@@ -905,19 +942,36 @@ const Dashboard = {
    * Update current metric values
    */
   updateCurrentMetrics: function() {
+    console.log('[updateCurrentMetrics] Updating current values...');
     // Use the most recent data point for current values
-    if (this.state.data.energy.length > 0) {
+    if (this.state.data.energy && this.state.data.energy.length > 0) {
       const latestEnergyData = this.state.data.energy[this.state.data.energy.length - 1];
+      // Safely update element
       if (this.elements.currentEnergyValue) {
         this.elements.currentEnergyValue.textContent = latestEnergyData.y.toFixed(2) + ' kWh';
+        console.log('[updateCurrentMetrics] Updated energy value');
+      } else {
+        console.warn('[updateCurrentMetrics] currentEnergyValue element not found');
       }
+    } else {
+       console.warn('[updateCurrentMetrics] No energy data available');
+       // Optionally clear or set placeholder if element exists
+       if (this.elements.currentEnergyValue) this.elements.currentEnergyValue.textContent = '-- kWh';
     }
     
-    if (this.state.data.carbon.length > 0) {
+    if (this.state.data.carbon && this.state.data.carbon.length > 0) {
       const latestCarbonData = this.state.data.carbon[this.state.data.carbon.length - 1];
+      // Safely update element
       if (this.elements.currentCarbonValue) {
         this.elements.currentCarbonValue.textContent = latestCarbonData.y.toFixed(2) + ' kg CO₂';
+        console.log('[updateCurrentMetrics] Updated carbon value');
+      } else {
+        console.warn('[updateCurrentMetrics] currentCarbonValue element not found');
       }
+    } else {
+       console.warn('[updateCurrentMetrics] No carbon data available');
+       // Optionally clear or set placeholder if element exists
+       if (this.elements.currentCarbonValue) this.elements.currentCarbonValue.textContent = '-- kg CO₂';
     }
   },
   
@@ -1244,14 +1298,21 @@ const Dashboard = {
    * @param {boolean} show - Whether to show or hide the panel
    */
   toggleHistoricalPanel: function(show) {
+    console.log('[toggleHistoricalPanel] Toggling panel visibility to:', show);
     if (this.elements.historicalPanel) {
-      if (show) {
-        this.elements.historicalPanel.classList.remove('hidden');
+      // Check if classList exists before modifying
+      if (this.elements.historicalPanel.classList) {
+        if (show) {
+          this.elements.historicalPanel.classList.remove('hidden');
+        } else {
+          this.elements.historicalPanel.classList.add('hidden');
+        }
+        console.log('[toggleHistoricalPanel] Visibility updated');
       } else {
-        this.elements.historicalPanel.classList.add('hidden');
+        console.warn('[toggleHistoricalPanel] historicalPanel element found, but classList is missing');
       }
     } else {
-      console.warn('Historical panel element not found in the DOM');
+      console.warn('[toggleHistoricalPanel] Historical panel element not found');
     }
   },
   
