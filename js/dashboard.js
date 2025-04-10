@@ -1081,57 +1081,120 @@ const Dashboard = {
   },
   
   /**
-   * Show loading indicator
-   * @param {string} message - Loading message
+   * Show the loading indicator
+   * @param {string} message - Optional loading message
    */
   showLoading: function(message = 'Loading...') {
-    if (this.elements.loadingIndicator && this.elements.loadingText) {
-      this.elements.loadingText.textContent = message;
-      this.elements.loadingIndicator.classList.remove('hidden');
+    console.log('[showLoading] Showing loading indicator. Message:', message);
+    
+    // Use the cached elements if available
+    const loadingIndicator = this.elements.loadingIndicator;
+    const loadingText = this.elements.loadingText;
+    
+    if (loadingIndicator) {
+      console.log('  - Found loadingIndicator element');
+      // Safely access style properties
+      if (loadingIndicator.style) {
+        console.log('  - loadingIndicator.style exists');
+        loadingIndicator.classList.remove('hidden');
+        console.log('  - Removed hidden class from loadingIndicator');
+      } else {
+        console.warn('[showLoading] loadingIndicator element found, but .style is null');
+      }
     } else {
-      console.warn('Loading indicator elements not found in the DOM');
+      console.warn('[showLoading] Loading indicator element (#loading-indicator) not found');
+    }
+    
+    if (loadingText) {
+      console.log('  - Found loadingText element');
+      loadingText.textContent = message;
+      console.log('  - Set text content for loadingText');
+    } else {
+      console.warn('[showLoading] Loading text element (#loading-text) not found');
     }
   },
   
   /**
-   * Hide loading indicator
+   * Hide the loading indicator
    */
   hideLoading: function() {
-    if (this.elements.loadingIndicator) {
-      this.elements.loadingIndicator.classList.add('hidden');
+    console.log('[hideLoading] Hiding loading indicator.');
+    
+    // Use the cached elements if available
+    const loadingIndicator = this.elements.loadingIndicator;
+    
+    if (loadingIndicator) {
+      console.log('  - Found loadingIndicator element');
+      // Safely access style properties
+      if (loadingIndicator.style) {
+        console.log('  - loadingIndicator.style exists');
+        loadingIndicator.classList.add('hidden');
+        console.log('  - Added hidden class to loadingIndicator');
+      } else {
+        console.warn('[hideLoading] loadingIndicator element found, but .style is null');
+      }
     } else {
-      console.warn('Loading indicator element not found in the DOM');
+      console.warn('[hideLoading] Loading indicator element (#loading-indicator) not found');
     }
   },
   
   /**
-   * Show error notification
-   * @param {string} message - Error message
+   * Show an error message
+   * @param {string} message - Error message to display
    */
   showError: function(message) {
-    console.error('Dashboard error:', message);
+    console.error('[showError] Displaying error:', message);
     
-    if (this.elements.errorNotification && this.elements.errorText) {
-      this.elements.errorText.textContent = message;
-      this.elements.errorNotification.classList.remove('hidden');
+    // Use cached elements
+    const errorNotification = this.elements.errorNotification;
+    const errorText = this.elements.errorText;
+    
+    if (errorNotification) {
+      console.log('  - Found errorNotification element');
+      if (errorText) {
+        console.log('  - Found errorText element');
+        errorText.textContent = message;
+        console.log('  - Set text content for errorText');
+      } else {
+        console.warn('[showError] Error text element (#error-text) not found');
+      }
       
-      // Auto-hide after 10 seconds
-      setTimeout(() => {
-        this.hideError();
-      }, 10000);
+      // Safely access style properties
+      if (errorNotification.style) {
+        console.log('  - errorNotification.style exists');
+        errorNotification.classList.remove('hidden');
+        console.log('  - Removed hidden class from errorNotification');
+      } else {
+        console.warn('[showError] errorNotification element found, but .style is null');
+      }
     } else {
-      console.warn('Error notification elements not found in the DOM, cannot show error:', message);
+      console.warn('[showError] Error notification element (#error-notification) not found');
+      // Fallback to alert if the notification area is missing
+      alert('Dashboard Error: ' + message);
     }
   },
   
   /**
-   * Hide error notification
+   * Hide the error message
    */
   hideError: function() {
-    if (this.elements.errorNotification) {
-      this.elements.errorNotification.classList.add('hidden');
+    console.log('[hideError] Hiding error notification.');
+    
+    // Use cached elements
+    const errorNotification = this.elements.errorNotification;
+    
+    if (errorNotification) {
+      console.log('  - Found errorNotification element');
+      // Safely access style properties
+      if (errorNotification.style) {
+        console.log('  - errorNotification.style exists');
+        errorNotification.classList.add('hidden');
+        console.log('  - Added hidden class to errorNotification');
+      } else {
+        console.warn('[hideError] errorNotification element found, but .style is null');
+      }
     } else {
-      console.warn('Error notification element not found in the DOM');
+      console.warn('[hideError] Error notification element (#error-notification) not found');
     }
   },
   
