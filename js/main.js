@@ -1461,44 +1461,77 @@ function closeMobileMenu() {
 
 // Show loading indicator
 function showLoading(text = 'Loading...') {
+  console.log('[main.js showLoading] Showing loading indicator:', text);
   const loadingIndicator = document.getElementById('loading-indicator');
   const loadingText = document.getElementById('loading-text');
   
-  if (loadingIndicator && loadingText) {
-    loadingText.textContent = text;
-    loadingIndicator.classList.remove('hidden');
+  // Rigorous checks before manipulating elements
+  if (loadingIndicator) {
+    if (loadingIndicator.style) {
+      if (loadingText) {
+        loadingText.textContent = text;
+      } else {
+        console.warn('[main.js showLoading] loading-text element not found.');
+      }
+      loadingIndicator.classList.remove('hidden');
+    } else {
+      console.warn('[main.js showLoading] loading-indicator element found, but .style is null.');
+    }
   } else {
-    console.log('Loading:', text); // Fallback if elements don't exist
+    console.warn('[main.js showLoading] loading-indicator element not found.');
   }
 }
 
 // Hide loading indicator
 function hideLoading() {
+  console.log('[main.js hideLoading] Hiding loading indicator.');
   const loadingIndicator = document.getElementById('loading-indicator');
   if (loadingIndicator) {
-    loadingIndicator.classList.add('hidden');
+    // Check for .style before accessing classList
+    if (loadingIndicator.style) {
+      loadingIndicator.classList.add('hidden');
+    } else {
+      console.warn('[main.js hideLoading] loading-indicator element found, but .style is null.');
+    }
+  } else {
+    console.warn('[main.js hideLoading] loading-indicator element not found.');
   }
 }
 
 // Show error message
 function showError(message) {
-  console.error(message);
+  console.error('[main.js showError] Displaying error:', message);
   
   const notification = document.getElementById('error-notification');
   const errorText = document.getElementById('error-text');
   
-  if (notification && errorText) {
-    errorText.textContent = message;
-    notification.classList.remove('hidden');
-    
-    // Hide after 5 seconds
-    setTimeout(() => {
-      notification.classList.add('hidden');
-    }, 5000);
+  // Rigorous checks before manipulating elements
+  if (notification) {
+    if (notification.style) {
+      if (errorText) {
+        errorText.textContent = message;
+      } else {
+        console.warn('[main.js showError] error-text element not found.');
+      }
+      notification.classList.remove('hidden');
+      
+      // Ensure timeout only runs if notification was shown
+      setTimeout(() => {
+        // Check again before hiding, in case element was removed
+        const currentNotification = document.getElementById('error-notification');
+        if (currentNotification && currentNotification.style) {
+          currentNotification.classList.add('hidden');
+        } else {
+           console.warn('[main.js showError timeout] error-notification no longer valid for hiding.');
+        }
+      }, 5000);
+    } else {
+      console.warn('[main.js showError] error-notification element found, but .style is null.');
+      alert('Error: ' + message); // Fallback if style is null
+    }
   } else {
-    // Fallback if elements don't exist
-    console.error('Error:', message);
-    alert(message); // Only as a last resort
+    console.warn('[main.js showError] error-notification element not found.');
+    alert('Error: ' + message); // Fallback if element is missing
   }
 }
 
