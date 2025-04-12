@@ -498,31 +498,35 @@ const Dashboard = {
     }
 
     // ----- Update UI components safely ----- 
-    try {
-      console.log('[processThingSpeakData] Attempting to update charts...');
-      this.updateCharts();
-      console.log('[processThingSpeakData] Charts update attempted.');
-    } catch (chartError) {
-      console.error('[processThingSpeakData] Error during updateCharts call:', chartError);
-    }
-    
-    try {
-      console.log('[processThingSpeakData] Attempting to update current metrics...');
-      this.updateCurrentMetrics();
-      console.log('[processThingSpeakData] Current metrics update attempted.');
-    } catch (metricsError) {
-      console.error('[processThingSpeakData] Error during updateCurrentMetrics call:', metricsError);
-    }
-    
-    try {
-      console.log('[processThingSpeakData] Attempting to update ESG scores...');
-      this.updateESGScores(feeds);
-      console.log('[processThingSpeakData] ESG scores update attempted.');
-    } catch (esgError) {
-      console.error('[processThingSpeakData] Error during updateESGScores call:', esgError);
-    }
-    
-    // Cache the original, raw data
+    // Use requestAnimationFrame to ensure DOM is ready for updates
+    requestAnimationFrame(() => {
+      try {
+        console.log('[processThingSpeakData RAF] Attempting to update charts...');
+        this.updateCharts();
+        console.log('[processThingSpeakData RAF] Charts update attempted.');
+      } catch (chartError) {
+        console.error('[processThingSpeakData RAF] Error during updateCharts call:', chartError);
+      }
+      
+      try {
+        console.log('[processThingSpeakData RAF] Attempting to update current metrics...');
+        this.updateCurrentMetrics();
+        console.log('[processThingSpeakData RAF] Current metrics update attempted.');
+      } catch (metricsError) {
+        console.error('[processThingSpeakData RAF] Error during updateCurrentMetrics call:', metricsError);
+      }
+      
+      try {
+        console.log('[processThingSpeakData RAF] Attempting to update ESG scores...');
+        // Pass feeds data to the ESG score update within RAF
+        this.updateESGScores(feeds); 
+        console.log('[processThingSpeakData RAF] ESG scores update attempted.');
+      } catch (esgError) {
+        console.error('[processThingSpeakData RAF] Error during updateESGScores call:', esgError);
+      }
+    });
+
+    // Cache the original, raw data (can happen outside RAF)
     try {
       this.saveDataToCache(data);
       console.log('[processThingSpeakData] Data saved to cache.');
@@ -530,7 +534,7 @@ const Dashboard = {
       console.error('[processThingSpeakData] Error saving data to cache:', cacheError);
     }
     
-    console.log('[processThingSpeakData] Processing complete.');
+    console.log('[processThingSpeakData] Processing complete (UI updates scheduled).');
   },
   
   /**
