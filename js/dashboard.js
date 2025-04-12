@@ -1494,6 +1494,147 @@ const Dashboard = {
     
     this.processThingSpeakData(data, true);
     return data;
+  },
+  
+  /**
+   * Create iOS-style KPI cards when iOS mode is enabled
+   * This demonstrates how the data would look in iOS-style UI
+   */
+  createIOSStyleCards: function() {
+    console.log('[createIOSStyleCards] Creating iOS-style KPI cards');
+    
+    // Check if iOS style is enabled
+    if (!document.body.classList.contains('ios-style')) {
+      console.log('[createIOSStyleCards] iOS style not active, skipping card creation');
+      return;
+    }
+
+    // Container for iOS KPI cards
+    let iosCardsContainer = document.getElementById('ios-kpi-cards-container');
+    
+    // If container doesn't exist, create and insert it
+    if (!iosCardsContainer) {
+      iosCardsContainer = document.createElement('div');
+      iosCardsContainer.id = 'ios-kpi-cards-container';
+      iosCardsContainer.className = 'grid grid-cols-1 md:grid-cols-3 gap-6 mb-6';
+
+      // Insert after the current metrics cards
+      const currentMetricsContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-3');
+      if (currentMetricsContainer) {
+        currentMetricsContainer.parentNode.insertBefore(iosCardsContainer, currentMetricsContainer.nextSibling);
+      } else {
+        console.warn('[createIOSStyleCards] Cannot find current metrics container to insert iOS cards');
+        return;
+      }
+    } else {
+      // Clear existing cards
+      iosCardsContainer.innerHTML = '';
+    }
+    
+    // Energy KPI Card
+    const energyCard = this.createIOSKPICard({
+      title: 'Energy Consumption',
+      value: this.elements.currentEnergyValue ? this.elements.currentEnergyValue.textContent : '-- kWh',
+      icon: 'fa-bolt',
+      iconColor: '#0A84FF',
+      trend: {
+        value: -12.5,
+        text: 'vs. last week'
+      }
+    });
+    
+    // Carbon KPI Card
+    const carbonCard = this.createIOSKPICard({
+      title: 'Carbon Emissions',
+      value: this.elements.currentCarbonValue ? this.elements.currentCarbonValue.textContent : '-- kg CO₂',
+      icon: 'fa-leaf',
+      iconColor: '#30D158',
+      trend: {
+        value: -8.2,
+        text: 'vs. last week'
+      }
+    });
+    
+    // ESG Score KPI Card
+    const esgScoreCard = this.createIOSKPICard({
+      title: 'ESG Rating',
+      value: this.elements.esgScore ? this.elements.esgScore.textContent : '--',
+      icon: 'fa-star',
+      iconColor: '#BF5AF2',
+      trend: {
+        value: 5.3,
+        text: 'improvement'
+      }
+    });
+    
+    // Add cards to container
+    iosCardsContainer.appendChild(energyCard);
+    iosCardsContainer.appendChild(carbonCard);
+    iosCardsContainer.appendChild(esgScoreCard);
+    
+    console.log('[createIOSStyleCards] iOS KPI cards created');
+  },
+  
+  /**
+   * Create a single iOS-style KPI card
+   * @param {Object} options - Card options
+   * @param {string} options.title - Card title
+   * @param {string} options.value - Card value
+   * @param {string} options.icon - FontAwesome icon name
+   * @param {string} options.iconColor - Icon color (hex)
+   * @param {Object} options.trend - Trend data
+   * @param {number} options.trend.value - Trend percentage value
+   * @param {string} options.trend.text - Trend text label
+   * @returns {HTMLElement} - The KPI card element
+   */
+  createIOSKPICard: function(options) {
+    const card = document.createElement('div');
+    card.className = 'ios-kpi-card';
+    
+    // Header with icon
+    const header = document.createElement('div');
+    header.className = 'flex items-center justify-between mb-4';
+    
+    const titleEl = document.createElement('div');
+    titleEl.className = 'title';
+    titleEl.textContent = options.title;
+    
+    const iconEl = document.createElement('div');
+    iconEl.className = 'w-10 h-10 rounded-full flex items-center justify-center';
+    iconEl.style.backgroundColor = options.iconColor + '20'; // 20% opacity
+    
+    const icon = document.createElement('i');
+    icon.className = `fas ${options.icon}`;
+    icon.style.color = options.iconColor;
+    
+    iconEl.appendChild(icon);
+    header.appendChild(titleEl);
+    header.appendChild(iconEl);
+    
+    // Value
+    const valueEl = document.createElement('div');
+    valueEl.className = 'value';
+    valueEl.textContent = options.value;
+    
+    // Trend
+    const trendEl = document.createElement('div');
+    trendEl.className = options.trend.value >= 0 ? 'trend positive' : 'trend negative';
+    
+    const trendIcon = document.createElement('i');
+    trendIcon.className = `fas fa-${options.trend.value >= 0 ? 'arrow-up' : 'arrow-down'} mr-1`;
+    
+    const trendText = document.createElement('span');
+    trendText.textContent = `${Math.abs(options.trend.value).toFixed(1)}% ${options.trend.text}`;
+    
+    trendEl.appendChild(trendIcon);
+    trendEl.appendChild(trendText);
+    
+    // Assemble card
+    card.appendChild(header);
+    card.appendChild(valueEl);
+    card.appendChild(trendEl);
+    
+    return card;
   }
 };
 

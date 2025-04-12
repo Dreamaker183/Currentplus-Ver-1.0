@@ -321,4 +321,242 @@
   setTimeout(() => {
     clearInterval(helperCheckInterval);
   }, 10000);
+})();
+
+/**
+ * iOS Style UI Toggle
+ * This script transforms the ESG dashboard into an iOS-style UI
+ * based on SwiftUI design principles
+ */
+(function() {
+  // Create the iOS style toggle button
+  function createStyleToggle() {
+    const existingToggle = document.getElementById('ios-style-toggle');
+    if (existingToggle) return;
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'ios-style-toggle';
+    toggleBtn.className = 'btn btn-sm btn-outline-secondary';
+    toggleBtn.innerHTML = '<i class="fas fa-toggle-off"></i> iOS Style';
+    toggleBtn.style.position = 'fixed';
+    toggleBtn.style.bottom = '20px';
+    toggleBtn.style.right = '20px';
+    toggleBtn.style.zIndex = '1000';
+    
+    document.body.appendChild(toggleBtn);
+    setupiOSToggle();
+  }
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(createStyleToggle, 500);
+    });
+  } else {
+    setTimeout(createStyleToggle, 500);
+  }
+
+  // Toggle between standard and iOS style
+  function toggleiOSStyle() {
+    document.body.classList.toggle('ios-style');
+    
+    // Store preference in localStorage
+    const isIOSStyle = document.body.classList.contains('ios-style');
+    localStorage.setItem('ios_style_enabled', isIOSStyle);
+    
+    if (isIOSStyle) {
+      applyiOSStyle();
+    } else {
+      removeIOSStyle();
+    }
+  }
+  
+  // Apply iOS styling to specific elements
+  function applyiOSStyle() {
+    console.log('Applying iOS style');
+    
+    // Convert all cards to iOS cards
+    document.querySelectorAll('.card:not(.ios-converted)').forEach(card => {
+      card.classList.add('ios-card', 'ios-converted');
+    });
+    
+    // Convert buttons
+    document.querySelectorAll('button:not(.ios-converted), .btn:not(.ios-converted)').forEach(button => {
+      let buttonType = 'ios-button';
+      
+      // Determine button type based on existing classes
+      if (button.classList.contains('btn-primary')) {
+        buttonType += ' ios-button-primary';
+      } else if (button.classList.contains('btn-success')) {
+        buttonType += ' ios-button-success';
+      } else if (button.classList.contains('btn-danger')) {
+        buttonType += ' ios-button-danger';
+      } else if (button.classList.contains('btn-warning')) {
+        buttonType += ' ios-button-warning';
+      } else if (button.classList.contains('btn-info')) {
+        buttonType += ' ios-button-info';
+      }
+      
+      button.classList.add(buttonType, 'ios-converted');
+    });
+    
+    // Convert inputs
+    document.querySelectorAll('input:not(.ios-converted), select:not(.ios-converted), textarea:not(.ios-converted)').forEach(input => {
+      input.classList.add('ios-input', 'ios-converted');
+    });
+    
+    // Convert header
+    const header = document.querySelector('header');
+    if (header && !header.classList.contains('ios-converted')) {
+      header.classList.add('ios-header', 'ios-converted');
+      
+      // Make header title larger for iOS style
+      const headerTitle = header.querySelector('h1, .navbar-brand');
+      if (headerTitle) {
+        headerTitle.classList.add('ios-header-title');
+      }
+    }
+    
+    // Convert chart containers
+    document.querySelectorAll('.chart-container:not(.ios-converted)').forEach(chart => {
+      chart.classList.add('ios-chart-container', 'ios-converted');
+    });
+    
+    // Convert notifications
+    document.querySelectorAll('.alert:not(.ios-converted), .notification:not(.ios-converted)').forEach(notification => {
+      // Determine notification type
+      let notificationType = 'ios-notification';
+      
+      if (notification.classList.contains('alert-success')) {
+        notificationType += ' ios-notification-success';
+      } else if (notification.classList.contains('alert-danger') || notification.classList.contains('alert-error')) {
+        notificationType += ' ios-notification-error';
+      } else if (notification.classList.contains('alert-warning')) {
+        notificationType += ' ios-notification-warning';
+      } else if (notification.classList.contains('alert-info')) {
+        notificationType += ' ios-notification-info';
+      }
+      
+      notification.classList.add(notificationType, 'ios-converted');
+      
+      // Restructure error notifications to iOS style if needed
+      if (!notification.querySelector('.notification-content') && !notification.classList.contains('restructured')) {
+        const content = notification.innerHTML;
+        notification.innerHTML = '';
+        
+        const icon = document.createElement('div');
+        icon.className = 'notification-icon';
+        icon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'notification-content';
+        contentDiv.innerHTML = content;
+        
+        notification.appendChild(icon);
+        notification.appendChild(contentDiv);
+        notification.classList.add('restructured');
+      }
+    });
+    
+    // Convert loading indicators
+    document.querySelectorAll('.loading-indicator:not(.ios-converted)').forEach(loader => {
+      loader.classList.add('ios-loading', 'ios-converted');
+      
+      // Restructure to iOS style spinner if needed
+      if (!loader.querySelector('.spinner') && !loader.classList.contains('restructured')) {
+        const originalContent = loader.innerHTML;
+        loader.innerHTML = '';
+        
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner';
+        
+        const textSpan = document.createElement('span');
+        textSpan.textContent = 'Loading...';
+        if (originalContent && originalContent.trim() !== 'Loading...') {
+          textSpan.textContent = originalContent;
+        }
+        
+        loader.appendChild(spinner);
+        loader.appendChild(textSpan);
+        loader.classList.add('restructured');
+      }
+    });
+    
+    // Convert progress bars
+    document.querySelectorAll('.progress-bar:not(.ios-converted)').forEach(progressBar => {
+      progressBar.classList.add('ios-progress', 'ios-converted');
+    });
+    
+    // Create iOS-style KPI cards if Dashboard object exists
+    if (typeof Dashboard !== 'undefined' && typeof Dashboard.createIOSStyleCards === 'function') {
+      Dashboard.createIOSStyleCards();
+    }
+  }
+  
+  // Restore original styling
+  function removeIOSStyle() {
+    console.log('Removing iOS style');
+    
+    // Remove iOS classes from all converted elements
+    document.querySelectorAll('.ios-converted').forEach(element => {
+      element.classList.remove(
+        'ios-card', 
+        'ios-button', 
+        'ios-button-primary', 
+        'ios-button-success', 
+        'ios-button-danger', 
+        'ios-button-warning', 
+        'ios-button-info',
+        'ios-input',
+        'ios-header',
+        'ios-chart-container',
+        'ios-notification',
+        'ios-notification-success',
+        'ios-notification-error',
+        'ios-notification-warning',
+        'ios-notification-info',
+        'ios-loading',
+        'ios-progress',
+        'ios-converted'
+      );
+    });
+    
+    // Remove iOS KPI cards container if it exists
+    const iosCardsContainer = document.getElementById('ios-kpi-cards-container');
+    if (iosCardsContainer) {
+      iosCardsContainer.remove();
+    }
+  }
+  
+  // Set up the iOS style toggle
+  function setupiOSToggle() {
+    const iosToggle = document.getElementById('ios-style-toggle');
+    
+    if (iosToggle) {
+      iosToggle.addEventListener('click', () => {
+        if (iosToggle.classList.contains('active')) {
+          // Switching back to normal style
+          iosToggle.classList.remove('active');
+          iosToggle.innerHTML = '<i class="fas fa-toggle-off"></i> iOS Style';
+          document.body.classList.remove('ios-style');
+          removeIOSStyle();
+        } else {
+          // Switching to iOS style
+          iosToggle.classList.add('active');
+          iosToggle.innerHTML = '<i class="fas fa-toggle-on"></i> iOS Style';
+          document.body.classList.add('ios-style');
+          applyiOSStyle();
+        }
+      });
+      
+      // Check for saved preference and apply if needed
+      const savedPreference = localStorage.getItem('iosStyle');
+      if (savedPreference === 'true') {
+        iosToggle.classList.add('active');
+        iosToggle.innerHTML = '<i class="fas fa-toggle-on"></i> iOS Style';
+        document.body.classList.add('ios-style');
+        applyiOSStyle();
+      }
+    }
+  }
 })(); 
